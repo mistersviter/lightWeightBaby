@@ -6,6 +6,14 @@ export type EquipmentKind =
   | 'machine'
   | 'accessory'
 
+export type EquipmentRequirementCategory =
+  | 'dumbbell'
+  | 'machine'
+  | 'free_weight'
+  | 'accessory'
+  | 'bodyweight'
+  | 'other'
+
 export interface UserProfile {
   id: string
   login: string
@@ -39,14 +47,14 @@ export interface Exercise {
 }
 
 export interface ExerciseEquipmentRequirement {
-  itemId: string
+  category: EquipmentRequirementCategory
   quantity: number
 }
 
 export interface SessionEntry {
   id: string
   exerciseId: string
-  dumbbellAssemblyId: string | null
+  equipmentAssignments: SessionEquipmentAssignment[]
   sets: SessionSet[]
   notes: string
 }
@@ -54,6 +62,12 @@ export interface SessionEntry {
 export interface SessionSet {
   reps: number
   weight: number
+}
+
+export interface SessionEquipmentAssignment {
+  itemType: 'equipment' | 'assembly'
+  itemId: string
+  quantity: number
 }
 
 export interface DumbbellAssemblyPlateLoad {

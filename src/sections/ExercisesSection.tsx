@@ -14,17 +14,10 @@ import {
   Select,
   Typography,
 } from 'antd'
-import {
-  DeleteOutlined,
-  EditOutlined,
-  PlusOutlined,
-} from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
+import { equipmentRequirementCategoryOptions } from '../constants'
 import { useAppStore } from '../store/appStore'
-import { useDashboardData } from '../hooks/useDashboardData'
-import type {
-  Exercise,
-  ExerciseEquipmentRequirement,
-} from '../types'
+import type { Exercise, ExerciseEquipmentRequirement } from '../types'
 
 const { Text } = Typography
 
@@ -39,24 +32,15 @@ type ExercisesSectionProps = {
   onExerciseCreated?: (exerciseId: string) => void
 }
 
-type EquipmentRequirementsFieldsProps = {
-  equipmentOptions: {
-    label: string
-    options: { label: string; value: string }[]
-  }[]
-}
-
-function EquipmentRequirementsFields({
-  equipmentOptions,
-}: EquipmentRequirementsFieldsProps) {
+function EquipmentRequirementsFields() {
   return (
     <Form.List name="equipmentRequirements">
       {(fields, { add, remove }) => (
         <Flex vertical gap={12}>
           {fields.length === 0 ? (
             <Text type="secondary">
-              Можно привязать к упражнению конкретные компоненты или сохраненные
-              снаряды и указать, сколько их нужно.
+              Для упражнения лучше указывать не конкретный снаряд, а требуемый
+              класс инвентаря. Например: `гантель × 2`.
             </Text>
           ) : null}
 
@@ -64,13 +48,13 @@ function EquipmentRequirementsFields({
             <Row key={field.key} gutter={12} align="bottom">
               <Col xs={24} md={15}>
                 <Form.Item
-                  label={index === 0 ? 'Инвентарь' : ' '}
-                  name={[field.name, 'itemId']}
-                  rules={[{ required: true, message: 'Выберите снаряд' }]}
+                  label={index === 0 ? 'Класс инвентаря' : ' '}
+                  name={[field.name, 'category']}
+                  rules={[{ required: true, message: 'Выберите класс инвентаря' }]}
                 >
                   <Select
-                    options={equipmentOptions}
-                    placeholder="Выберите компонент или сохраненный снаряд"
+                    options={equipmentRequirementCategoryOptions}
+                    placeholder="Например, гантель"
                   />
                 </Form.Item>
               </Col>
@@ -89,7 +73,7 @@ function EquipmentRequirementsFields({
                     danger
                     type="text"
                     icon={<DeleteOutlined />}
-                    aria-label="Удалить привязку инвентаря"
+                    aria-label="Удалить требование к инвентарю"
                     onClick={() => remove(field.name)}
                   />
                 </Form.Item>
@@ -100,9 +84,9 @@ function EquipmentRequirementsFields({
           <Button
             type="dashed"
             icon={<PlusOutlined />}
-            onClick={() => add({ itemId: undefined, quantity: 1 })}
+            onClick={() => add({ category: undefined, quantity: 1 })}
           >
-            Добавить инвентарь
+            Добавить требование
           </Button>
         </Flex>
       )}
@@ -114,34 +98,27 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
   const [form] = Form.useForm<ExerciseFormValues>()
   const [editForm] = Form.useForm<ExerciseFormValues>()
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null)
-  const data = useAppStore((state) => state.data)
-  const exercises = data.exercises
+  const exercises = useAppStore((state) => state.data.exercises)
   const saveExercise = useAppStore((state) => state.saveExercise)
   const updateExercise = useAppStore((state) => state.updateExercise)
   const deleteExercise = useAppStore((state) => state.deleteExercise)
-  const { equipmentOptions } = useDashboardData()
 
-  const inventoryLabelMap = useMemo(() => {
-    const entries = [
-      ...data.equipment.map((item) => [item.id, item.name] as const),
-      ...data.dumbbellAssemblies.map(
-        (assembly) =>
-          [assembly.id, `${assembly.name} · ${assembly.totalWeightKg} кг`] as const,
+  const categoryLabelMap = useMemo(
+    () =>
+      new Map(
+        equipmentRequirementCategoryOptions.map((option) => [option.value, option.label]),
       ),
-    ]
-
-    return new Map<string, string>(entries)
-  }, [data.dumbbellAssemblies, data.equipment])
+    [],
+  )
 
   const formatRequirements = (requirements: ExerciseEquipmentRequirement[]) => {
     if (requirements.length === 0) {
-      return 'Инвентарь не привязан'
+      return 'Требования к инвентарю не заданы'
     }
 
     return requirements
       .map((requirement) => {
-        const label =
-          inventoryLabelMap.get(requirement.itemId) ?? 'Неизвестный снаряд'
+        const label = categoryLabelMap.get(requirement.category) ?? 'Другое'
         return `${label} × ${requirement.quantity}`
       })
       .join(', ')
@@ -179,12 +156,8 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
       <Form form={form} layout="vertical" onFinish={handleFinish}>
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <Form.Item
-              label="Название упражнения"
-              name="name"
-              rules={[{ required: true }]}
-            >
-              <Input placeholder="Жим лежа" />
+            <Form.Item label="Название упражнения" name="name" rules={[{ required: true }]}>
+              <Input placeholder="Жим гантелей лежа" />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
@@ -193,8 +166,8 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
             </Form.Item>
           </Col>
           <Col span={24}>
-            <Form.Item label="Инвентарь">
-              <EquipmentRequirementsFields equipmentOptions={equipmentOptions} />
+            <Form.Item label="Требования к инвентарю">
+              <EquipmentRequirementsFields />
             </Form.Item>
           </Col>
           <Col span={24}>
@@ -272,18 +245,14 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
         cancelText="Отмена"
       >
         <Form form={editForm} layout="vertical">
-          <Form.Item
-            label="Название упражнения"
-            name="name"
-            rules={[{ required: true }]}
-          >
+          <Form.Item label="Название упражнения" name="name" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
           <Form.Item label="Мышечная группа" name="primaryMuscleGroup">
             <Input />
           </Form.Item>
-          <Form.Item label="Инвентарь">
-            <EquipmentRequirementsFields equipmentOptions={equipmentOptions} />
+          <Form.Item label="Требования к инвентарю">
+            <EquipmentRequirementsFields />
           </Form.Item>
           <Form.Item label="Заметка" name="notes">
             <Input.TextArea rows={3} />

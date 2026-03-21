@@ -1,4 +1,10 @@
-import type { AppData } from './types'
+import type {
+  AppData,
+  EquipmentItem,
+  EquipmentRequirementCategory,
+  SessionEntry,
+  SessionEquipmentAssignment,
+} from './types'
 
 const DB_NAME = 'lightWeightBaby'
 const STORE_NAME = 'kv'
@@ -17,32 +23,87 @@ export const defaultData: AppData = {
   sprints: [],
 }
 
-function normalizeData(data: AppData): AppData {
-  const normalizeSessionEntry = (entry: AppData['sessions'][number]['entries'][number]) => ({
+type LegacySessionEntry = SessionEntry & {
+  dumbbellAssemblyId?: string
+  reps?: number
+  weight?: number
+}
+
+function inferRequirementCategory(
+  itemId: string,
+  equipment: EquipmentItem[],
+  assemblyIds: Set<string>,
+): EquipmentRequirementCategory {
+  if (assemblyIds.has(itemId)) {
+    return 'dumbbell'
+  }
+
+  const equipmentItem = equipment.find((item) => item.id === itemId)
+  if (!equipmentItem) {
+    return 'other'
+  }
+
+  if (equipmentItem.kind === 'machine') {
+    return 'machine'
+  }
+
+  if (
+    equipmentItem.kind === 'plate' ||
+    equipmentItem.kind === 'handle' ||
+    equipmentItem.kind === 'lock' ||
+    equipmentItem.kind === 'weight'
+  ) {
+    return 'free_weight'
+  }
+
+  if (equipmentItem.kind === 'accessory') {
+    return 'accessory'
+  }
+
+  return 'other'
+}
+
+function normalizeEquipmentAssignments(
+  assignments: SessionEquipmentAssignment[] | undefined,
+): SessionEquipmentAssignment[] {
+  return (assignments ?? [])
+    .filter((assignment) => assignment.itemId)
+    .map((assignment) => ({
+      itemType: assignment.itemType === 'assembly' ? ('assembly' as const) : ('equipment' as const),
+      itemId: assignment.itemId,
+      quantity: Math.max(1, Number(assignment.quantity) || 1),
+    }))
+}
+
+function normalizeSessionEntry(entry: LegacySessionEntry): SessionEntry {
+  return {
     ...entry,
-    dumbbellAssemblyId: entry.dumbbellAssemblyId ?? null,
+    equipmentAssignments: Array.isArray(entry.equipmentAssignments)
+      ? normalizeEquipmentAssignments(entry.equipmentAssignments)
+      : entry.dumbbellAssemblyId
+        ? [
+            {
+              itemType: 'assembly',
+              itemId: entry.dumbbellAssemblyId,
+              quantity: 1,
+            },
+          ]
+        : [],
     sets: Array.isArray(entry.sets)
       ? entry.sets.map((set) => ({
           reps: Math.max(0, Number(set.reps) || 0),
           weight: Math.max(0, Number(set.weight) || 0),
         }))
-      : Array.from(
-          { length: Math.max(1, Number(entry.sets) || 1) },
-          () => ({
-            reps: Math.max(
-              0,
-              Number('reps' in entry && entry.reps !== undefined ? entry.reps : 0) || 0,
-            ),
-            weight: Math.max(
-              0,
-              Number(
-                'weight' in entry && entry.weight !== undefined ? entry.weight : 0,
-              ) || 0,
-            ),
-          }),
-        ),
+      : Array.from({ length: Math.max(1, Number(entry.sets) || 1) }, () => ({
+          reps: Math.max(0, Number(entry.reps ?? 0) || 0),
+          weight: Math.max(0, Number(entry.weight ?? 0) || 0),
+        })),
     notes: entry.notes ?? '',
-  })
+  }
+}
+
+function normalizeData(data: AppData): AppData {
+  const assemblyIds = new Set((data.dumbbellAssemblies ?? []).map((item) => item.id))
 
   return {
     ...data,
@@ -89,36 +150,47 @@ function normalizeData(data: AppData): AppData {
     exercises: data.exercises.map((exercise) => {
       const legacyExercise = exercise as typeof exercise & {
         equipmentIds?: string[]
+      } & {
+        equipmentRequirements?: Array<{
+          category?: EquipmentRequirementCategory
+          itemId?: string
+          quantity?: number
+        }>
       }
 
       return {
         ...exercise,
-        equipmentRequirements:
-          Array.isArray(exercise.equipmentRequirements)
-            ? exercise.equipmentRequirements.map((requirement) => ({
-                itemId: requirement.itemId,
-                quantity: Math.max(1, Number(requirement.quantity) || 1),
+        equipmentRequirements: Array.isArray(legacyExercise.equipmentRequirements)
+          ? legacyExercise.equipmentRequirements.map((requirement: {
+              category?: EquipmentRequirementCategory
+              itemId?: string
+              quantity?: number
+            }) => ({
+              category: requirement.category
+                ? requirement.category
+                : requirement.itemId
+                  ? inferRequirementCategory(requirement.itemId, data.equipment, assemblyIds)
+                  : 'other',
+              quantity: Math.max(1, Number(requirement.quantity) || 1),
+            }))
+          : Array.isArray(legacyExercise.equipmentIds)
+            ? legacyExercise.equipmentIds.map((itemId) => ({
+                category: inferRequirementCategory(itemId, data.equipment, assemblyIds),
+                quantity: 1,
               }))
-            : Array.isArray(legacyExercise.equipmentIds)
-              ? legacyExercise.equipmentIds.map((itemId: string) => ({
-                  itemId,
-                  quantity: 1,
-                }))
-              : [],
+            : [],
         notes: exercise.notes ?? '',
       }
     }),
     workoutTemplates: (data.workoutTemplates ?? []).map((template) => ({
       ...template,
       notes: template.notes ?? '',
-      entries: template.entries.map(normalizeSessionEntry),
+      entries: template.entries.map((entry) => normalizeSessionEntry(entry as LegacySessionEntry)),
     })),
-    scheduledWorkouts: (data.scheduledWorkouts ?? []).map((item) => ({
-      ...item,
-    })),
-    sessions: data.sessions.map((session) => ({
+    scheduledWorkouts: (data.scheduledWorkouts ?? []).map((item) => ({ ...item })),
+    sessions: (data.sessions ?? []).map((session) => ({
       ...session,
-      entries: session.entries.map(normalizeSessionEntry),
+      entries: session.entries.map((entry) => normalizeSessionEntry(entry as LegacySessionEntry)),
     })),
   }
 }

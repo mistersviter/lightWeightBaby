@@ -1,4 +1,4 @@
-import type { EquipmentKind } from './types'
+import type { EquipmentKind, EquipmentRequirementCategory } from './types'
 import { toDateInput } from './utils'
 
 export type CalendarMode = 'day' | 'week' | 'month'
@@ -15,6 +15,18 @@ export const equipmentKindOptions: Array<{ value: EquipmentKind; label: string }
   { value: 'accessory', label: 'Аксессуар' },
 ]
 
+export const equipmentRequirementCategoryOptions: Array<{
+  value: EquipmentRequirementCategory
+  label: string
+}> = [
+  { value: 'dumbbell', label: 'Гантель' },
+  { value: 'machine', label: 'Тренажер' },
+  { value: 'free_weight', label: 'Свободный вес' },
+  { value: 'accessory', label: 'Аксессуар' },
+  { value: 'bodyweight', label: 'Собственный вес' },
+  { value: 'other', label: 'Другое' },
+]
+
 export const calendarModeOptions: Array<{ label: string; value: CalendarMode }> = [
   { label: 'День', value: 'day' },
   { label: 'Неделя', value: 'week' },
@@ -23,7 +35,7 @@ export const calendarModeOptions: Array<{ label: string; value: CalendarMode }> 
 
 export const initialEntryForm = {
   exerciseId: '',
-  dumbbellAssemblyId: undefined,
+  equipmentAssignments: [],
   sets: [{ reps: 10, weight: 0 }],
   notes: '',
 }

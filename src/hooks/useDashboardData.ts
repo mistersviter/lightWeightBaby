@@ -19,16 +19,13 @@ export function useDashboardData() {
   )
 
   const recentMeasurements = useMemo(
-    () =>
-      [...data.measurements].sort((left, right) => right.date.localeCompare(left.date)),
+    () => [...data.measurements].sort((left, right) => right.date.localeCompare(left.date)),
     [data.measurements],
   )
 
   const recentSprints = useMemo(
     () =>
-      [...data.sprints].sort((left, right) =>
-        right.startDate.localeCompare(left.startDate),
-      ),
+      [...data.sprints].sort((left, right) => right.startDate.localeCompare(left.startDate)),
     [data.sprints],
   )
 
@@ -57,6 +54,7 @@ export function useDashboardData() {
     if (calendarMode === 'day') {
       return [toDateInput(base)]
     }
+
     if (calendarMode === 'week') {
       const day = base.getDay()
       const offset = day === 0 ? -6 : 1 - day
@@ -72,26 +70,6 @@ export function useDashboardData() {
     )
   }, [anchorDate, calendarMode])
 
-  const equipmentOptions = useMemo(
-    () => [
-      {
-        label: 'Компоненты',
-        options: data.equipment.map((item) => ({
-          label: item.name,
-          value: item.id,
-        })),
-      },
-      {
-        label: 'Сохраненные снаряды',
-        options: data.dumbbellAssemblies.map((assembly) => ({
-          label: `${assembly.name} · ${assembly.totalWeightKg} кг`,
-          value: assembly.id,
-        })),
-      },
-    ],
-    [data.dumbbellAssemblies, data.equipment],
-  )
-
   const exerciseOptions = useMemo(
     () =>
       data.exercises.map((exercise) => ({
@@ -104,10 +82,30 @@ export function useDashboardData() {
   const dumbbellAssemblyOptions = useMemo(
     () =>
       data.dumbbellAssemblies.map((assembly) => ({
-        label: `${assembly.name} · ${assembly.totalWeightKg} кг`,
+        label: assembly.name,
         value: assembly.id,
       })),
     [data.dumbbellAssemblies],
+  )
+
+  const actualEquipmentOptions = useMemo(
+    () => [
+      {
+        label: 'Инвентарь',
+        options: data.equipment.map((item) => ({
+          label: item.name,
+          value: `equipment:${item.id}`,
+        })),
+      },
+      {
+        label: 'Сохраненные снаряды',
+        options: data.dumbbellAssemblies.map((assembly) => ({
+          label: assembly.name,
+          value: `assembly:${assembly.id}`,
+        })),
+      },
+    ],
+    [data.dumbbellAssemblies, data.equipment],
   )
 
   const workoutTemplateOptions = useMemo(
@@ -128,7 +126,7 @@ export function useDashboardData() {
     nextSprint,
     sessionsThisWeek,
     calendarDays,
-    equipmentOptions,
+    actualEquipmentOptions,
     exerciseOptions,
     dumbbellAssemblyOptions,
     workoutTemplateOptions,

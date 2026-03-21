@@ -17,6 +17,7 @@ import type {
   MeasurementRecord,
   ScheduledWorkout,
   SessionEntry,
+  SessionEquipmentAssignment,
   SessionSet,
   Sprint,
   WorkoutTemplate,
@@ -137,10 +138,25 @@ function normalizeExerciseRequirements(
   requirements: ExerciseEquipmentRequirement[] | undefined,
 ) {
   return (requirements ?? [])
-    .filter((requirement) => requirement.itemId)
+    .filter((requirement) => requirement.category)
     .map((requirement) => ({
-      itemId: requirement.itemId,
+      category: requirement.category,
       quantity: Math.max(1, Number(requirement.quantity) || 1),
+    }))
+}
+
+function normalizeEquipmentAssignments(
+  assignments: SessionEquipmentAssignment[] | undefined,
+): SessionEquipmentAssignment[] {
+  return (assignments ?? [])
+    .filter((assignment) => assignment.itemId)
+    .map((assignment) => ({
+      itemType:
+        assignment.itemType === 'assembly'
+          ? ('assembly' as const)
+          : ('equipment' as const),
+      itemId: assignment.itemId,
+      quantity: Math.max(1, Number(assignment.quantity) || 1),
     }))
 }
 
@@ -153,11 +169,11 @@ function normalizeSessionSets(sets: SessionSet[] | undefined) {
   return normalized.length > 0 ? normalized : [{ reps: 0, weight: 0 }]
 }
 
-function normalizeSessionEntries(entries: SessionEntryInput[]) {
+function normalizeSessionEntries(entries: SessionEntryInput[]): SessionEntry[] {
   return entries.map((entry) => ({
     ...entry,
     id: entry.id ?? createId('entry'),
-    dumbbellAssemblyId: entry.dumbbellAssemblyId ?? null,
+    equipmentAssignments: normalizeEquipmentAssignments(entry.equipmentAssignments),
     sets: normalizeSessionSets(entry.sets),
     notes: entry.notes?.trim() || '',
   }))
@@ -285,11 +301,25 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const nextData = {
       ...data,
       equipment: data.equipment.filter((item) => item.id !== equipmentId),
-      exercises: data.exercises.map((exercise) => ({
-        ...exercise,
-        equipmentRequirements: exercise.equipmentRequirements.filter(
-          (requirement) => requirement.itemId !== equipmentId,
-        ),
+      workoutTemplates: data.workoutTemplates.map((template) => ({
+        ...template,
+        entries: template.entries.map((entry) => ({
+          ...entry,
+          equipmentAssignments: entry.equipmentAssignments.filter(
+            (assignment) =>
+              !(assignment.itemType === 'equipment' && assignment.itemId === equipmentId),
+          ),
+        })),
+      })),
+      sessions: data.sessions.map((session) => ({
+        ...session,
+        entries: session.entries.map((entry) => ({
+          ...entry,
+          equipmentAssignments: entry.equipmentAssignments.filter(
+            (assignment) =>
+              !(assignment.itemType === 'equipment' && assignment.itemId === equipmentId),
+          ),
+        })),
       })),
     }
 
@@ -378,7 +408,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const nextEntry: SessionEntry = {
       ...entry,
       id: createId('entry'),
-      dumbbellAssemblyId: entry.dumbbellAssemblyId ?? null,
+      equipmentAssignments: normalizeEquipmentAssignments(entry.equipmentAssignments),
       sets: normalizeSessionSets(entry.sets),
       notes: entry.notes?.trim() || '',
     }
