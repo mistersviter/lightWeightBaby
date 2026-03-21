@@ -36,6 +36,7 @@ type LegacyExerciseRequirement = {
 }
 
 type LegacySessionEntry = SessionEntry & {
+  equipmentAssignments?: SessionEquipmentAssignment[]
   dumbbellAssemblyId?: string
   reps?: number
   weight?: number
@@ -99,27 +100,41 @@ function normalizeEquipmentAssignments(
 }
 
 function normalizeSessionEntry(entry: LegacySessionEntry): SessionEntry {
+  const legacyAssignments = Array.isArray(entry.equipmentAssignments)
+    ? normalizeEquipmentAssignments(entry.equipmentAssignments)
+    : entry.dumbbellAssemblyId
+      ? [
+          {
+            itemType: 'assembly' as const,
+            itemId: entry.dumbbellAssemblyId,
+            quantity: 1,
+          },
+        ]
+      : []
+
   return {
     ...entry,
-    equipmentAssignments: Array.isArray(entry.equipmentAssignments)
-      ? normalizeEquipmentAssignments(entry.equipmentAssignments)
-      : entry.dumbbellAssemblyId
-        ? [
-            {
-              itemType: 'assembly',
-              itemId: entry.dumbbellAssemblyId,
-              quantity: 1,
-            },
-          ]
-        : [],
     sets: Array.isArray(entry.sets)
       ? entry.sets.map((set) => ({
           reps: Math.max(0, Number(set.reps) || 0),
-          weight: Math.max(0, Number(set.weight) || 0),
+          weightKg:
+            'weightKg' in set && set.weightKg !== undefined && set.weightKg !== null
+              ? Math.max(0, Number(set.weightKg) || 0)
+              : 'weight' in set && set.weight !== undefined && set.weight !== null
+                ? Math.max(0, Number(set.weight) || 0)
+                : null,
+          equipmentAssignments:
+            'equipmentAssignments' in set && Array.isArray(set.equipmentAssignments)
+              ? normalizeEquipmentAssignments(set.equipmentAssignments)
+              : legacyAssignments,
         }))
       : Array.from({ length: Math.max(1, Number(entry.sets) || 1) }, () => ({
           reps: Math.max(0, Number(entry.reps ?? 0) || 0),
-          weight: Math.max(0, Number(entry.weight ?? 0) || 0),
+          weightKg:
+            entry.weight !== undefined && entry.weight !== null
+              ? Math.max(0, Number(entry.weight) || 0)
+              : null,
+          equipmentAssignments: legacyAssignments,
         })),
     notes: entry.notes ?? '',
   }

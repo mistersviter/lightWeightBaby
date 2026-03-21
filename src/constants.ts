@@ -98,8 +98,7 @@ export const calendarModeOptions: Array<{ label: string; value: CalendarMode }> 
 
 export const initialEntryForm = {
   exerciseId: '',
-  equipmentAssignments: [],
-  sets: [{ reps: 10, weight: 0 }],
+  sets: [{ reps: 10, weightKg: null, equipmentAssignments: [] }],
   notes: '',
 }
 

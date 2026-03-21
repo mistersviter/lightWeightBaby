@@ -3,6 +3,7 @@ import {
   AutoComplete,
   Button,
   Card,
+  Checkbox,
   Col,
   Empty,
   Flex,
@@ -25,6 +26,7 @@ const { Text } = Typography
 type ExerciseFormValues = {
   name: string
   primaryMuscleGroup?: string
+  isBodyweight?: boolean
   equipmentRequirements?: ExerciseEquipmentRequirement[]
   notes?: string
 }
@@ -33,15 +35,19 @@ type ExercisesSectionProps = {
   onExerciseCreated?: (exerciseId: string) => void
 }
 
-function EquipmentRequirementsFields() {
+function EquipmentRequirementsFields({
+  options,
+}: {
+  options: typeof equipmentRequirementCategoryOptions
+}) {
   return (
     <Form.List name="equipmentRequirements">
       {(fields, { add, remove }) => (
         <Flex vertical gap={12}>
           {fields.length === 0 ? (
             <Text type="secondary">
-              Лучше указывать не конкретный предмет, а что именно нужно упражнению.
-              Например: `гантель × 2` и `скамья × 1`.
+              Указывай не конкретный предмет, а то, что нужно упражнению. Например:
+              `гантель × 2`, `скамья × 1`, `турник × 1`, `резина × 1`.
             </Text>
           ) : null}
 
@@ -54,7 +60,7 @@ function EquipmentRequirementsFields() {
                   rules={[{ required: true, message: 'Выберите тип требования' }]}
                 >
                   <Select
-                    options={equipmentRequirementCategoryOptions}
+                    options={options}
                     placeholder="Например, гантель или скамья"
                   />
                 </Form.Item>
@@ -104,6 +110,15 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
   const updateExercise = useAppStore((state) => state.updateExercise)
   const deleteExercise = useAppStore((state) => state.deleteExercise)
 
+  const requirementOptions = useMemo(
+    () =>
+      equipmentRequirementCategoryOptions.map((group) => ({
+        ...group,
+        options: group.options.filter((option) => option.value !== 'bodyweight'),
+      })),
+    [],
+  )
+
   const categoryLabelMap = useMemo(() => {
     const map = new Map<string, string>()
     for (const group of equipmentRequirementCategoryOptions) {
@@ -127,8 +142,29 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
       .join(', ')
   }
 
+  const applyBodyweightFlag = (
+    requirements: ExerciseEquipmentRequirement[] | undefined,
+    isBodyweight: boolean | undefined,
+  ) => {
+    const normalized = (requirements ?? []).filter(
+      (requirement) => requirement.category !== 'bodyweight',
+    )
+
+    if (isBodyweight) {
+      return [{ category: 'bodyweight' as const, quantity: 1 }, ...normalized]
+    }
+
+    return normalized
+  }
+
   const handleFinish = async (values: ExerciseFormValues) => {
-    const created = await saveExercise(values)
+    const created = await saveExercise({
+      ...values,
+      equipmentRequirements: applyBodyweightFlag(
+        values.equipmentRequirements,
+        values.isBodyweight,
+      ),
+    })
     form.resetFields()
     onExerciseCreated?.(created.id)
   }
@@ -138,7 +174,12 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
     editForm.setFieldsValue({
       name: exercise.name,
       primaryMuscleGroup: exercise.primaryMuscleGroup,
-      equipmentRequirements: exercise.equipmentRequirements,
+      isBodyweight: exercise.equipmentRequirements.some(
+        (requirement) => requirement.category === 'bodyweight',
+      ),
+      equipmentRequirements: exercise.equipmentRequirements.filter(
+        (requirement) => requirement.category !== 'bodyweight',
+      ),
       notes: exercise.notes,
     })
   }
@@ -149,7 +190,13 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
       return
     }
 
-    await updateExercise(editingExercise.id, values)
+    await updateExercise(editingExercise.id, {
+      ...values,
+      equipmentRequirements: applyBodyweightFlag(
+        values.equipmentRequirements,
+        values.isBodyweight,
+      ),
+    })
     setEditingExercise(null)
     editForm.resetFields()
   }
@@ -160,7 +207,7 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
         <Row gutter={16}>
           <Col xs={24} md={12}>
             <Form.Item label="Название упражнения" name="name" rules={[{ required: true }]}>
-              <Input placeholder="Жим гантелей лежа" />
+              <Input placeholder="Подтягивания" />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
@@ -172,13 +219,22 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
                     .toLowerCase()
                     .includes(inputValue.toLowerCase())
                 }
-                placeholder="Например, грудь"
+                placeholder="Например, спина"
               />
             </Form.Item>
           </Col>
           <Col span={24}>
+            <Form.Item name="isBodyweight" valuePropName="checked">
+              <Checkbox>Упражнение с собственным весом</Checkbox>
+            </Form.Item>
+            <Text type="secondary">
+              Для подтягиваний, отжиманий и похожих упражнений. Дополнительный инвентарь
+              вроде турника, брусьев или резины можно указать ниже.
+            </Text>
+          </Col>
+          <Col span={24}>
             <Form.Item label="Что нужно для упражнения">
-              <EquipmentRequirementsFields />
+              <EquipmentRequirementsFields options={requirementOptions} />
             </Form.Item>
           </Col>
           <Col span={24}>
@@ -267,8 +323,11 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
               }
             />
           </Form.Item>
+          <Form.Item name="isBodyweight" valuePropName="checked">
+            <Checkbox>Упражнение с собственным весом</Checkbox>
+          </Form.Item>
           <Form.Item label="Что нужно для упражнения">
-            <EquipmentRequirementsFields />
+            <EquipmentRequirementsFields options={requirementOptions} />
           </Form.Item>
           <Form.Item label="Заметка" name="notes">
             <Input.TextArea rows={3} />

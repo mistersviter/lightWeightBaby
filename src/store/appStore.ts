@@ -163,17 +163,22 @@ function normalizeEquipmentAssignments(
 function normalizeSessionSets(sets: SessionSet[] | undefined) {
   const normalized = (sets ?? []).map((set) => ({
     reps: Math.max(0, Number(set.reps) || 0),
-    weight: Math.max(0, Number(set.weight) || 0),
+    weightKg:
+      set.weightKg === undefined || set.weightKg === null
+        ? null
+        : Math.max(0, Number(set.weightKg) || 0),
+    equipmentAssignments: normalizeEquipmentAssignments(set.equipmentAssignments),
   }))
 
-  return normalized.length > 0 ? normalized : [{ reps: 0, weight: 0 }]
+  return normalized.length > 0
+    ? normalized
+    : [{ reps: 0, weightKg: null, equipmentAssignments: [] }]
 }
 
 function normalizeSessionEntries(entries: SessionEntryInput[]): SessionEntry[] {
   return entries.map((entry) => ({
     ...entry,
     id: entry.id ?? createId('entry'),
-    equipmentAssignments: normalizeEquipmentAssignments(entry.equipmentAssignments),
     sets: normalizeSessionSets(entry.sets),
     notes: entry.notes?.trim() || '',
   }))
@@ -305,20 +310,26 @@ export const useAppStore = create<AppStore>((set, get) => ({
         ...template,
         entries: template.entries.map((entry) => ({
           ...entry,
-          equipmentAssignments: entry.equipmentAssignments.filter(
-            (assignment) =>
-              !(assignment.itemType === 'equipment' && assignment.itemId === equipmentId),
-          ),
+          sets: entry.sets.map((set) => ({
+            ...set,
+            equipmentAssignments: set.equipmentAssignments.filter(
+              (assignment) =>
+                !(assignment.itemType === 'equipment' && assignment.itemId === equipmentId),
+            ),
+          })),
         })),
       })),
       sessions: data.sessions.map((session) => ({
         ...session,
         entries: session.entries.map((entry) => ({
           ...entry,
-          equipmentAssignments: entry.equipmentAssignments.filter(
-            (assignment) =>
-              !(assignment.itemType === 'equipment' && assignment.itemId === equipmentId),
-          ),
+          sets: entry.sets.map((set) => ({
+            ...set,
+            equipmentAssignments: set.equipmentAssignments.filter(
+              (assignment) =>
+                !(assignment.itemType === 'equipment' && assignment.itemId === equipmentId),
+            ),
+          })),
         })),
       })),
     }
@@ -408,7 +419,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const nextEntry: SessionEntry = {
       ...entry,
       id: createId('entry'),
-      equipmentAssignments: normalizeEquipmentAssignments(entry.equipmentAssignments),
       sets: normalizeSessionSets(entry.sets),
       notes: entry.notes?.trim() || '',
     }

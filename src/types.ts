@@ -67,14 +67,14 @@ export interface ExerciseEquipmentRequirement {
 export interface SessionEntry {
   id: string
   exerciseId: string
-  equipmentAssignments: SessionEquipmentAssignment[]
   sets: SessionSet[]
   notes: string
 }
 
 export interface SessionSet {
   reps: number
-  weight: number
+  weightKg: number | null
+  equipmentAssignments: SessionEquipmentAssignment[]
 }
 
 export interface SessionEquipmentAssignment {
