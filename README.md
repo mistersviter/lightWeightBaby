@@ -1,73 +1,67 @@
-# React + TypeScript + Vite
+# lightWeightBaby
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Легкое офлайн-приложение для учета домашних тренировок, инвентаря и прогресса.
 
-Currently, two official plugins are available:
+## Что уже есть
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- вход по логину без пароля;
+- локальное хранение данных в IndexedDB;
+- каталог инвентаря и компонентов;
+- сборка разборных гантелей с учетом веса, толщины и посадки;
+- сохраненные снаряды;
+- упражнения с привязкой инвентаря и количества;
+- тренировки, замеры и спринты;
+- календарь тренировочной активности.
 
-## React Compiler
+## Стек
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React
+- TypeScript
+- Vite
+- Ant Design
+- Zustand
+- IndexedDB
 
-## Expanding the ESLint configuration
+## Локальный запуск
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Сборка production:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build
 ```
+
+Проверка линтером:
+
+```bash
+npm run lint
+```
+
+## GitHub Pages
+
+Проект настроен на деплой через GitHub Actions в GitHub Pages.
+
+После пуша в `main` workflow соберет приложение и опубликует его по адресу:
+
+`https://mistersviter.github.io/lightWeightBaby/`
+
+Если сайт не откроется сразу, проверь в репозитории:
+
+1. `Settings -> Pages`
+2. `Build and deployment -> Source`
+3. Должно быть выбрано `GitHub Actions`
+
+## CI/CD
+
+В репозитории добавлены workflows:
+
+- `CI` — запускает `npm ci`, `npm run lint`, `npm run build`
+- `Deploy to GitHub Pages` — публикует приложение из ветки `main`
+
+## Статус
+
+Сейчас это офлайн-MVP без бэкенда. Все пользовательские данные живут только в браузере на текущем устройстве.
