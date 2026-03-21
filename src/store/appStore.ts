@@ -1,0 +1,421 @@
+import { create } from 'zustand'
+import { defaultData, readAppData, writeAppData } from '../db'
+import {
+  defaultMeasurementFormValues,
+  defaultSprintFormValues,
+  defaultSessionFormValues,
+  type CalendarMode,
+  todayInput,
+} from '../constants'
+import type {
+  AppData,
+  DumbbellAssembly,
+  EquipmentItem,
+  EquipmentKind,
+  Exercise,
+  ExerciseEquipmentRequirement,
+  MeasurementRecord,
+  SessionEntry,
+  Sprint,
+  WorkoutSession,
+} from '../types'
+import { addDays, createId, toDateInput } from '../utils'
+
+type EquipmentInput = {
+  name: string
+  kind: EquipmentKind
+  unit?: string
+  increment?: number
+  quantity?: number
+  weightKg?: number | null
+  thicknessMm?: number | null
+  diameterMm?: number | null
+  sleeveLengthMm?: number | null
+  gripLengthMm?: number | null
+  mountSizeMm?: number | null
+  notes?: string
+}
+
+type ExerciseInput = {
+  name: string
+  primaryMuscleGroup?: string
+  equipmentRequirements?: ExerciseEquipmentRequirement[]
+  notes?: string
+}
+
+type SessionInput = {
+  date: string
+  title: string
+  notes?: string
+}
+
+type MeasurementInput = {
+  date: string
+  bodyWeight?: number
+  chest?: number
+  waist?: number
+  hips?: number
+  arm?: number
+  thigh?: number
+  notes?: string
+}
+
+type SprintInput = {
+  name: string
+  startDate: string
+  durationDays: number
+  goal?: string
+  focus?: string
+}
+
+type AppStore = {
+  data: AppData
+  isReady: boolean
+  error: string
+  calendarMode: CalendarMode
+  anchorDate: string
+  sessionDraft: SessionEntry[]
+  load: () => Promise<void>
+  clearError: () => void
+  loginUser: (login: string) => void
+  switchUser: (userId: string) => void
+  logout: () => void
+  saveEquipment: (values: EquipmentInput) => Promise<void>
+  updateEquipment: (equipmentId: string, values: EquipmentInput) => Promise<void>
+  deleteEquipment: (equipmentId: string) => Promise<void>
+  saveDumbbellAssembly: (assembly: Omit<DumbbellAssembly, 'id' | 'createdAt'>) => Promise<void>
+  saveExercise: (values: ExerciseInput) => Promise<Exercise>
+  updateExercise: (exerciseId: string, values: ExerciseInput) => Promise<void>
+  deleteExercise: (exerciseId: string) => Promise<void>
+  addDraftEntry: (entry: Omit<SessionEntry, 'id'>) => void
+  removeDraftEntry: (entryId: string) => void
+  clearDraft: () => void
+  saveSession: (values: SessionInput) => Promise<boolean>
+  saveMeasurement: (values: MeasurementInput) => Promise<void>
+  saveSprint: (values: SprintInput) => Promise<void>
+  setCalendarMode: (mode: CalendarMode) => void
+  resetCalendar: () => void
+  moveCalendar: (direction: -1 | 1) => void
+}
+
+async function persistData(data: AppData, setError: (error: string) => void) {
+  try {
+    await writeAppData(data)
+  } catch {
+    setError('Не удалось сохранить изменения в IndexedDB.')
+  }
+}
+
+function normalizeExerciseRequirements(
+  requirements: ExerciseEquipmentRequirement[] | undefined,
+) {
+  return (requirements ?? [])
+    .filter((requirement) => requirement.itemId)
+    .map((requirement) => ({
+      itemId: requirement.itemId,
+      quantity: Math.max(1, Number(requirement.quantity) || 1),
+    }))
+}
+
+export const useAppStore = create<AppStore>((set, get) => ({
+  data: defaultData,
+  isReady: false,
+  error: '',
+  calendarMode: 'week',
+  anchorDate: todayInput,
+  sessionDraft: [],
+
+  load: async () => {
+    try {
+      const loaded = await readAppData()
+      set({ data: loaded, isReady: true, error: '' })
+    } catch {
+      set({
+        isReady: true,
+        error: 'Не удалось открыть локальную базу данных IndexedDB.',
+      })
+    }
+  },
+
+  clearError: () => set({ error: '' }),
+
+  loginUser: (login) => {
+    const normalized = login.trim().toLowerCase()
+    if (!normalized) {
+      return
+    }
+
+    const { data } = get()
+    const existing = data.users.find((user) => user.login === normalized)
+    const newUserId = createId('user')
+    const nextData = existing
+      ? { ...data, activeUserId: existing.id }
+      : {
+          ...data,
+          activeUserId: newUserId,
+          users: [
+            ...data.users,
+            {
+              id: newUserId,
+              login: normalized,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        }
+
+    set({ data: nextData })
+    void persistData(nextData, (error) => set({ error }))
+  },
+
+  switchUser: (userId) => {
+    const nextData = { ...get().data, activeUserId: userId }
+    set({ data: nextData })
+    void persistData(nextData, (error) => set({ error }))
+  },
+
+  logout: () => {
+    const nextData = { ...get().data, activeUserId: null }
+    set({ data: nextData })
+    void persistData(nextData, (error) => set({ error }))
+  },
+
+  saveEquipment: async (values) => {
+    const nextItem: EquipmentItem = {
+      id: createId('equipment'),
+      name: values.name.trim(),
+      kind: values.kind,
+      unit: values.unit?.trim() || 'кг',
+      increment: values.increment ?? 0,
+      quantity: values.quantity ?? 1,
+      weightKg: values.weightKg ?? null,
+      thicknessMm: values.thicknessMm ?? null,
+      diameterMm: values.diameterMm ?? null,
+      sleeveLengthMm: values.sleeveLengthMm ?? null,
+      gripLengthMm: values.gripLengthMm ?? null,
+      mountSizeMm: values.mountSizeMm ?? null,
+      notes: values.notes?.trim() || '',
+      createdAt: new Date().toISOString(),
+    }
+
+    const nextData = {
+      ...get().data,
+      equipment: [nextItem, ...get().data.equipment],
+    }
+    set({ data: nextData })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  updateEquipment: async (equipmentId, values) => {
+    const { data } = get()
+    const nextData = {
+      ...data,
+      equipment: data.equipment.map((item) =>
+        item.id === equipmentId
+          ? {
+              ...item,
+              name: values.name.trim(),
+              kind: values.kind,
+              unit: values.unit?.trim() || 'кг',
+              increment: values.increment ?? 0,
+              quantity: values.quantity ?? 1,
+              weightKg: values.weightKg ?? null,
+              thicknessMm: values.thicknessMm ?? null,
+              diameterMm: values.diameterMm ?? null,
+              sleeveLengthMm: values.sleeveLengthMm ?? null,
+              gripLengthMm: values.gripLengthMm ?? null,
+              mountSizeMm: values.mountSizeMm ?? null,
+              notes: values.notes?.trim() || '',
+            }
+          : item,
+      ),
+    }
+
+    set({ data: nextData })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  deleteEquipment: async (equipmentId) => {
+    const { data } = get()
+    const nextData = {
+      ...data,
+      equipment: data.equipment.filter((item) => item.id !== equipmentId),
+      exercises: data.exercises.map((exercise) => ({
+        ...exercise,
+        equipmentRequirements: exercise.equipmentRequirements.filter(
+          (requirement) => requirement.itemId !== equipmentId,
+        ),
+      })),
+    }
+
+    set({ data: nextData })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  saveDumbbellAssembly: async (assembly) => {
+    const nextAssembly: DumbbellAssembly = {
+      ...assembly,
+      id: createId('assembly'),
+      createdAt: new Date().toISOString(),
+    }
+
+    const nextData = {
+      ...get().data,
+      dumbbellAssemblies: [nextAssembly, ...get().data.dumbbellAssemblies],
+    }
+    set({ data: nextData })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  saveExercise: async (values) => {
+    const nextExercise: Exercise = {
+      id: createId('exercise'),
+      name: values.name.trim(),
+      primaryMuscleGroup: values.primaryMuscleGroup?.trim() || '',
+      equipmentRequirements: normalizeExerciseRequirements(
+        values.equipmentRequirements,
+      ),
+      notes: values.notes?.trim() || '',
+      createdAt: new Date().toISOString(),
+    }
+
+    const nextData = {
+      ...get().data,
+      exercises: [nextExercise, ...get().data.exercises],
+    }
+    set({ data: nextData })
+    await persistData(nextData, (error) => set({ error }))
+    return nextExercise
+  },
+
+  updateExercise: async (exerciseId, values) => {
+    const { data } = get()
+    const nextData = {
+      ...data,
+      exercises: data.exercises.map((exercise) =>
+        exercise.id === exerciseId
+          ? {
+              ...exercise,
+              name: values.name.trim(),
+              primaryMuscleGroup: values.primaryMuscleGroup?.trim() || '',
+              equipmentRequirements: normalizeExerciseRequirements(
+                values.equipmentRequirements,
+              ),
+              notes: values.notes?.trim() || '',
+            }
+          : exercise,
+      ),
+    }
+
+    set({ data: nextData })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  deleteExercise: async (exerciseId) => {
+    const { data, sessionDraft } = get()
+    const nextData = {
+      ...data,
+      exercises: data.exercises.filter((exercise) => exercise.id !== exerciseId),
+    }
+
+    set({
+      data: nextData,
+      sessionDraft: sessionDraft.filter((entry) => entry.exerciseId !== exerciseId),
+    })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  addDraftEntry: (entry) => {
+    const nextEntry: SessionEntry = { ...entry, id: createId('entry') }
+    set({ sessionDraft: [...get().sessionDraft, nextEntry] })
+  },
+
+  removeDraftEntry: (entryId) => {
+    set({
+      sessionDraft: get().sessionDraft.filter((entry) => entry.id !== entryId),
+    })
+  },
+
+  clearDraft: () => set({ sessionDraft: [] }),
+
+  saveSession: async (values) => {
+    const { sessionDraft } = get()
+    if (sessionDraft.length === 0) {
+      return false
+    }
+
+    const nextSession: WorkoutSession = {
+      id: createId('session'),
+      date: values.date,
+      title: values.title.trim() || 'Тренировка',
+      notes: values.notes?.trim() || '',
+      entries: sessionDraft,
+      createdAt: new Date().toISOString(),
+    }
+
+    const nextData = {
+      ...get().data,
+      sessions: [nextSession, ...get().data.sessions],
+    }
+    set({ data: nextData, sessionDraft: [] })
+    await persistData(nextData, (error) => set({ error }))
+    return true
+  },
+
+  saveMeasurement: async (values) => {
+    const nextMeasurement: MeasurementRecord = {
+      id: createId('measurement'),
+      date: values.date,
+      bodyWeight: values.bodyWeight ?? 0,
+      chest: values.chest ?? 0,
+      waist: values.waist ?? 0,
+      hips: values.hips ?? 0,
+      arm: values.arm ?? 0,
+      thigh: values.thigh ?? 0,
+      notes: values.notes?.trim() || '',
+      createdAt: new Date().toISOString(),
+    }
+
+    const nextData = {
+      ...get().data,
+      measurements: [nextMeasurement, ...get().data.measurements],
+    }
+    set({ data: nextData })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  saveSprint: async (values) => {
+    const nextSprint: Sprint = {
+      id: createId('sprint'),
+      name: values.name.trim(),
+      startDate: values.startDate,
+      durationDays: values.durationDays ?? 14,
+      goal: values.goal?.trim() || '',
+      focus: values.focus?.trim() || '',
+      createdAt: new Date().toISOString(),
+    }
+
+    const nextData = {
+      ...get().data,
+      sprints: [nextSprint, ...get().data.sprints],
+    }
+    set({ data: nextData })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  setCalendarMode: (mode) => set({ calendarMode: mode }),
+
+  resetCalendar: () => set({ anchorDate: todayInput }),
+
+  moveCalendar: (direction) => {
+    const { anchorDate, calendarMode } = get()
+    const base = new Date(anchorDate)
+    const delta = calendarMode === 'day' ? 1 : calendarMode === 'week' ? 7 : 30
+    set({ anchorDate: toDateInput(addDays(base, delta * direction)) })
+  },
+}))
+
+export const appFormDefaults = {
+  session: defaultSessionFormValues,
+  measurement: defaultMeasurementFormValues,
+  sprint: defaultSprintFormValues,
+}
