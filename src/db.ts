@@ -10,12 +10,40 @@ export const defaultData: AppData = {
   equipment: [],
   dumbbellAssemblies: [],
   exercises: [],
+  workoutTemplates: [],
+  scheduledWorkouts: [],
   sessions: [],
   measurements: [],
   sprints: [],
 }
 
 function normalizeData(data: AppData): AppData {
+  const normalizeSessionEntry = (entry: AppData['sessions'][number]['entries'][number]) => ({
+    ...entry,
+    dumbbellAssemblyId: entry.dumbbellAssemblyId ?? null,
+    sets: Array.isArray(entry.sets)
+      ? entry.sets.map((set) => ({
+          reps: Math.max(0, Number(set.reps) || 0),
+          weight: Math.max(0, Number(set.weight) || 0),
+        }))
+      : Array.from(
+          { length: Math.max(1, Number(entry.sets) || 1) },
+          () => ({
+            reps: Math.max(
+              0,
+              Number('reps' in entry && entry.reps !== undefined ? entry.reps : 0) || 0,
+            ),
+            weight: Math.max(
+              0,
+              Number(
+                'weight' in entry && entry.weight !== undefined ? entry.weight : 0,
+              ) || 0,
+            ),
+          }),
+        ),
+    notes: entry.notes ?? '',
+  })
+
   return {
     ...data,
     equipment: data.equipment.map((item) => ({
@@ -80,12 +108,17 @@ function normalizeData(data: AppData): AppData {
         notes: exercise.notes ?? '',
       }
     }),
+    workoutTemplates: (data.workoutTemplates ?? []).map((template) => ({
+      ...template,
+      notes: template.notes ?? '',
+      entries: template.entries.map(normalizeSessionEntry),
+    })),
+    scheduledWorkouts: (data.scheduledWorkouts ?? []).map((item) => ({
+      ...item,
+    })),
     sessions: data.sessions.map((session) => ({
       ...session,
-      entries: session.entries.map((entry) => ({
-        ...entry,
-        dumbbellAssemblyId: entry.dumbbellAssemblyId ?? null,
-      })),
+      entries: session.entries.map(normalizeSessionEntry),
     })),
   }
 }

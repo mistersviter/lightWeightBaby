@@ -1,4 +1,9 @@
-import type { MeasurementRecord, Sprint, WorkoutSession } from './types'
+import type {
+  MeasurementRecord,
+  ScheduledWorkout,
+  Sprint,
+  WorkoutSession,
+} from './types'
 
 export function createId(prefix: string) {
   const random = Math.random().toString(36).slice(2, 8)
@@ -45,6 +50,13 @@ export function getMeasurementsForDay(
   date: string,
 ) {
   return measurements.filter((measurement) => measurement.date === date)
+}
+
+export function getScheduledWorkoutsForDay(
+  scheduledWorkouts: ScheduledWorkout[],
+  date: string,
+) {
+  return scheduledWorkouts.filter((item) => item.date === date)
 }
 
 export function getSprintEndDate(sprint: Sprint) {
@@ -95,7 +107,10 @@ export function getSprintSnapshot(
     totalSets: sprintSessions.reduce(
       (sum, session) =>
         sum +
-        session.entries.reduce((entrySum, entry) => entrySum + entry.sets, 0),
+        session.entries.reduce(
+          (entrySum, entry) => entrySum + entry.sets.length,
+          0,
+        ),
       0,
     ),
     weightDelta:

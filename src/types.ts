@@ -47,10 +47,13 @@ export interface SessionEntry {
   id: string
   exerciseId: string
   dumbbellAssemblyId: string | null
-  sets: number
+  sets: SessionSet[]
+  notes: string
+}
+
+export interface SessionSet {
   reps: number
   weight: number
-  notes: string
 }
 
 export interface DumbbellAssemblyPlateLoad {
@@ -86,6 +89,22 @@ export interface WorkoutSession {
   createdAt: string
 }
 
+export interface WorkoutTemplate {
+  id: string
+  name: string
+  notes: string
+  entries: SessionEntry[]
+  createdAt: string
+}
+
+export interface ScheduledWorkout {
+  id: string
+  date: string
+  templateId: string
+  templateName: string
+  createdAt: string
+}
+
 export interface MeasurementRecord {
   id: string
   date: string
@@ -115,6 +134,8 @@ export interface AppData {
   equipment: EquipmentItem[]
   dumbbellAssemblies: DumbbellAssembly[]
   exercises: Exercise[]
+  workoutTemplates: WorkoutTemplate[]
+  scheduledWorkouts: ScheduledWorkout[]
   sessions: WorkoutSession[]
   measurements: MeasurementRecord[]
   sprints: Sprint[]

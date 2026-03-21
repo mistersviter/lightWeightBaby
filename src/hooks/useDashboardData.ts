@@ -34,6 +34,14 @@ export function useDashboardData() {
 
   const nextSprint = recentSprints[0] ?? null
 
+  const recentWorkoutTemplates = useMemo(
+    () =>
+      [...data.workoutTemplates].sort((left, right) =>
+        right.createdAt.localeCompare(left.createdAt),
+      ),
+    [data.workoutTemplates],
+  )
+
   const sessionsThisWeek = useMemo(() => {
     const start = startOfDay(addDays(new Date(), -6)).getTime()
     const end = startOfDay(new Date()).getTime()
@@ -102,9 +110,19 @@ export function useDashboardData() {
     [data.dumbbellAssemblies],
   )
 
+  const workoutTemplateOptions = useMemo(
+    () =>
+      data.workoutTemplates.map((template) => ({
+        label: template.name,
+        value: template.id,
+      })),
+    [data.workoutTemplates],
+  )
+
   return {
     activeUser,
     recentSessions,
+    recentWorkoutTemplates,
     recentMeasurements,
     recentSprints,
     nextSprint,
@@ -113,6 +131,7 @@ export function useDashboardData() {
     equipmentOptions,
     exerciseOptions,
     dumbbellAssemblyOptions,
+    workoutTemplateOptions,
     today,
   }
 }

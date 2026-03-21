@@ -15,8 +15,11 @@ import type {
   Exercise,
   ExerciseEquipmentRequirement,
   MeasurementRecord,
+  ScheduledWorkout,
   SessionEntry,
+  SessionSet,
   Sprint,
+  WorkoutTemplate,
   WorkoutSession,
 } from '../types'
 import { addDays, createId, toDateInput } from '../utils'
@@ -47,6 +50,16 @@ type SessionInput = {
   date: string
   title: string
   notes?: string
+}
+
+type WorkoutTemplateInput = {
+  name: string
+  notes?: string
+  entries: SessionEntryInput[]
+}
+
+type SessionEntryInput = Omit<SessionEntry, 'id'> & {
+  id?: string
 }
 
 type MeasurementInput = {
@@ -91,6 +104,20 @@ type AppStore = {
   removeDraftEntry: (entryId: string) => void
   clearDraft: () => void
   saveSession: (values: SessionInput) => Promise<boolean>
+  updateSession: (
+    sessionId: string,
+    values: SessionInput & { entries: SessionEntryInput[] },
+  ) => Promise<void>
+  deleteSession: (sessionId: string) => Promise<void>
+  saveWorkoutTemplate: (values: WorkoutTemplateInput) => Promise<WorkoutTemplate>
+  updateWorkoutTemplate: (
+    templateId: string,
+    values: WorkoutTemplateInput,
+  ) => Promise<void>
+  deleteWorkoutTemplate: (templateId: string) => Promise<void>
+  scheduleWorkoutTemplate: (templateId: string, date: string) => Promise<void>
+  deleteScheduledWorkout: (scheduledWorkoutId: string) => Promise<void>
+  completeScheduledWorkout: (scheduledWorkoutId: string) => Promise<void>
   saveMeasurement: (values: MeasurementInput) => Promise<void>
   saveSprint: (values: SprintInput) => Promise<void>
   setCalendarMode: (mode: CalendarMode) => void
@@ -115,6 +142,25 @@ function normalizeExerciseRequirements(
       itemId: requirement.itemId,
       quantity: Math.max(1, Number(requirement.quantity) || 1),
     }))
+}
+
+function normalizeSessionSets(sets: SessionSet[] | undefined) {
+  const normalized = (sets ?? []).map((set) => ({
+    reps: Math.max(0, Number(set.reps) || 0),
+    weight: Math.max(0, Number(set.weight) || 0),
+  }))
+
+  return normalized.length > 0 ? normalized : [{ reps: 0, weight: 0 }]
+}
+
+function normalizeSessionEntries(entries: SessionEntryInput[]) {
+  return entries.map((entry) => ({
+    ...entry,
+    id: entry.id ?? createId('entry'),
+    dumbbellAssemblyId: entry.dumbbellAssemblyId ?? null,
+    sets: normalizeSessionSets(entry.sets),
+    notes: entry.notes?.trim() || '',
+  }))
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -315,6 +361,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const nextData = {
       ...data,
       exercises: data.exercises.filter((exercise) => exercise.id !== exerciseId),
+      workoutTemplates: data.workoutTemplates.map((template) => ({
+        ...template,
+        entries: template.entries.filter((entry) => entry.exerciseId !== exerciseId),
+      })),
     }
 
     set({
@@ -325,7 +375,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   addDraftEntry: (entry) => {
-    const nextEntry: SessionEntry = { ...entry, id: createId('entry') }
+    const nextEntry: SessionEntry = {
+      ...entry,
+      id: createId('entry'),
+      dumbbellAssemblyId: entry.dumbbellAssemblyId ?? null,
+      sets: normalizeSessionSets(entry.sets),
+      notes: entry.notes?.trim() || '',
+    }
     set({ sessionDraft: [...get().sessionDraft, nextEntry] })
   },
 
@@ -359,6 +415,165 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ data: nextData, sessionDraft: [] })
     await persistData(nextData, (error) => set({ error }))
     return true
+  },
+
+  updateSession: async (sessionId, values) => {
+    const { data } = get()
+    const nextData = {
+      ...data,
+      sessions: data.sessions.map((session) =>
+        session.id === sessionId
+          ? {
+              ...session,
+              date: values.date,
+              title: values.title.trim() || 'Тренировка',
+              notes: values.notes?.trim() || '',
+              entries: normalizeSessionEntries(values.entries),
+            }
+          : session,
+      ),
+    }
+
+    set({ data: nextData })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  deleteSession: async (sessionId) => {
+    const { data } = get()
+    const nextData = {
+      ...data,
+      sessions: data.sessions.filter((session) => session.id !== sessionId),
+    }
+
+    set({ data: nextData })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  saveWorkoutTemplate: async (values) => {
+    const nextTemplate: WorkoutTemplate = {
+      id: createId('template'),
+      name: values.name.trim(),
+      notes: values.notes?.trim() || '',
+      entries: normalizeSessionEntries(values.entries),
+      createdAt: new Date().toISOString(),
+    }
+
+    const nextData = {
+      ...get().data,
+      workoutTemplates: [nextTemplate, ...get().data.workoutTemplates],
+    }
+    set({ data: nextData })
+    await persistData(nextData, (error) => set({ error }))
+    return nextTemplate
+  },
+
+  updateWorkoutTemplate: async (templateId, values) => {
+    const { data } = get()
+    const nextData = {
+      ...data,
+      workoutTemplates: data.workoutTemplates.map((template) =>
+        template.id === templateId
+          ? {
+              ...template,
+              name: values.name.trim(),
+              notes: values.notes?.trim() || '',
+              entries: normalizeSessionEntries(values.entries),
+            }
+          : template,
+      ),
+      scheduledWorkouts: data.scheduledWorkouts.map((item) =>
+        item.templateId === templateId
+          ? {
+              ...item,
+              templateName: values.name.trim(),
+            }
+          : item,
+      ),
+    }
+    set({ data: nextData })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  deleteWorkoutTemplate: async (templateId) => {
+    const { data } = get()
+    const nextData = {
+      ...data,
+      workoutTemplates: data.workoutTemplates.filter(
+        (template) => template.id !== templateId,
+      ),
+      scheduledWorkouts: data.scheduledWorkouts.filter(
+        (item) => item.templateId !== templateId,
+      ),
+    }
+    set({ data: nextData })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  scheduleWorkoutTemplate: async (templateId, date) => {
+    const { data } = get()
+    const template = data.workoutTemplates.find((item) => item.id === templateId)
+    if (!template) {
+      return
+    }
+
+    const nextScheduledWorkout: ScheduledWorkout = {
+      id: createId('scheduled-workout'),
+      date,
+      templateId: template.id,
+      templateName: template.name,
+      createdAt: new Date().toISOString(),
+    }
+
+    const nextData = {
+      ...data,
+      scheduledWorkouts: [nextScheduledWorkout, ...data.scheduledWorkouts],
+    }
+    set({ data: nextData })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  deleteScheduledWorkout: async (scheduledWorkoutId) => {
+    const { data } = get()
+    const nextData = {
+      ...data,
+      scheduledWorkouts: data.scheduledWorkouts.filter(
+        (item) => item.id !== scheduledWorkoutId,
+      ),
+    }
+    set({ data: nextData })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  completeScheduledWorkout: async (scheduledWorkoutId) => {
+    const { data } = get()
+    const scheduled = data.scheduledWorkouts.find((item) => item.id === scheduledWorkoutId)
+    if (!scheduled) {
+      return
+    }
+
+    const template = data.workoutTemplates.find((item) => item.id === scheduled.templateId)
+    if (!template) {
+      return
+    }
+
+    const nextSession: WorkoutSession = {
+      id: createId('session'),
+      date: scheduled.date,
+      title: template.name,
+      notes: template.notes,
+      entries: normalizeSessionEntries(template.entries),
+      createdAt: new Date().toISOString(),
+    }
+
+    const nextData = {
+      ...data,
+      sessions: [nextSession, ...data.sessions],
+      scheduledWorkouts: data.scheduledWorkouts.filter(
+        (item) => item.id !== scheduledWorkoutId,
+      ),
+    }
+    set({ data: nextData })
+    await persistData(nextData, (error) => set({ error }))
   },
 
   saveMeasurement: async (values) => {

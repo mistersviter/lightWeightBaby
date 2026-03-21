@@ -59,6 +59,36 @@
   font-weight: 500;
 }
 
+.workout-session-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.workout-entry-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #edf1f7;
+  border-radius: 12px;
+  background: #fafcff;
+}
+
+.workout-entry-summary__title {
+  font-weight: 600;
+}
+
+.workout-entry-summary__sets {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.workout-entry-summary__set {
+  line-height: 1.4;
+}
+
 @media (max-width: 768px) {
   .content-wrap {
     width: min(100% - 16px, 1280px);
