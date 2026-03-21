@@ -73,6 +73,23 @@ export const equipmentRequirementCategoryOptions: Array<{
   },
 ]
 
+export const muscleGroupOptions: Array<{ value: string; label: string }> = [
+  { value: 'Грудь', label: 'Грудь' },
+  { value: 'Спина', label: 'Спина' },
+  { value: 'Плечи', label: 'Плечи' },
+  { value: 'Бицепс', label: 'Бицепс' },
+  { value: 'Трицепс', label: 'Трицепс' },
+  { value: 'Предплечья', label: 'Предплечья' },
+  { value: 'Пресс', label: 'Пресс' },
+  { value: 'Косые мышцы живота', label: 'Косые мышцы живота' },
+  { value: 'Ягодицы', label: 'Ягодицы' },
+  { value: 'Квадрицепсы', label: 'Квадрицепсы' },
+  { value: 'Бицепс бедра', label: 'Бицепс бедра' },
+  { value: 'Икры', label: 'Икры' },
+  { value: 'Ноги', label: 'Ноги' },
+  { value: 'Все тело', label: 'Все тело' },
+]
+
 export const calendarModeOptions: Array<{ label: string; value: CalendarMode }> = [
   { label: 'День', value: 'day' },
   { label: 'Неделя', value: 'week' },

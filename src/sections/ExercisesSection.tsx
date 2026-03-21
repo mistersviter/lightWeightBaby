@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
+  AutoComplete,
   Button,
   Card,
   Col,
@@ -15,7 +16,7 @@ import {
   Typography,
 } from 'antd'
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
-import { equipmentRequirementCategoryOptions } from '../constants'
+import { equipmentRequirementCategoryOptions, muscleGroupOptions } from '../constants'
 import { useAppStore } from '../store/appStore'
 import type { Exercise, ExerciseEquipmentRequirement } from '../types'
 
@@ -164,7 +165,15 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
           </Col>
           <Col xs={24} md={12}>
             <Form.Item label="Мышечная группа" name="primaryMuscleGroup">
-              <Input placeholder="Грудь" />
+              <AutoComplete
+                options={muscleGroupOptions}
+                filterOption={(inputValue, option) =>
+                  String(option?.value ?? '')
+                    .toLowerCase()
+                    .includes(inputValue.toLowerCase())
+                }
+                placeholder="Например, грудь"
+              />
             </Form.Item>
           </Col>
           <Col span={24}>
@@ -249,7 +258,14 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
             <Input />
           </Form.Item>
           <Form.Item label="Мышечная группа" name="primaryMuscleGroup">
-            <Input />
+            <AutoComplete
+              options={muscleGroupOptions}
+              filterOption={(inputValue, option) =>
+                String(option?.value ?? '')
+                  .toLowerCase()
+                  .includes(inputValue.toLowerCase())
+              }
+            />
           </Form.Item>
           <Form.Item label="Что нужно для упражнения">
             <EquipmentRequirementsFields />
