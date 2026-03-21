@@ -35,16 +35,17 @@ export function ComponentsCatalogTab({
   return (
     <Flex vertical gap={24}>
       <Card size="small" className="entity-item-card">
-        <Title level={5}>Каталог компонентов</Title>
+        <Title level={5}>Каталог инвентаря</Title>
         <Text type="secondary">
-          Для разборной гантели лучше заносить по отдельности блины, рукоятки и
-          замки, чтобы потом собирать реальные конфигурации по весу и габаритам.
+          Здесь мы храним не только детали для сборки гантелей, но и все, что может
+          понадобиться упражнениям: скамьи, турники, стойки, тренажеры и другие опорные
+          или нагрузочные снаряды.
         </Text>
         <div style={{ marginTop: 16 }}>
           <Form form={form} layout="vertical" onFinish={onSubmit}>
             <EquipmentFields form={form} />
             <Button type="primary" htmlType="submit" icon={<PlusOutlined />}>
-              Сохранить компонент
+              Сохранить элемент
             </Button>
           </Form>
         </div>
@@ -63,14 +64,10 @@ export function ComponentsCatalogTab({
             >
               <div className="entity-item-card__header">
                 <div>
-                  <div className="entity-item-card__title">
-                    {formatEquipmentTitle(item)}
-                  </div>
+                  <div className="entity-item-card__title">{formatEquipmentTitle(item)}</div>
                   <Flex gap={8} wrap="wrap">
                     <Tag>{getKindLabel(item.kind)}</Tag>
-                    {item.mountSizeMm ? (
-                      <Tag color="blue">{item.mountSizeMm} мм</Tag>
-                    ) : null}
+                    {item.mountSizeMm ? <Tag color="blue">{item.mountSizeMm} мм</Tag> : null}
                   </Flex>
                   <Text type="secondary">{formatEquipmentSummary(item)}</Text>
                 </div>
@@ -78,15 +75,15 @@ export function ComponentsCatalogTab({
                   <Button
                     type="text"
                     icon={<EditOutlined />}
-                    aria-label="Редактировать компонент"
+                    aria-label="Редактировать элемент"
                     onClick={() => onEdit(item)}
                   />
                   <Popconfirm
-                    title="Удалить компонент?"
+                    title="Удалить элемент?"
                     description={
                       item.kind === 'plate'
                         ? 'Сборщик гантели перестанет учитывать этот блин.'
-                        : 'Компонент будет удален из каталога.'
+                        : 'Элемент будет удален из каталога.'
                     }
                     okText="Удалить"
                     cancelText="Отмена"
@@ -96,7 +93,7 @@ export function ComponentsCatalogTab({
                       danger
                       type="text"
                       icon={<DeleteOutlined />}
-                      aria-label="Удалить компонент"
+                      aria-label="Удалить элемент"
                     />
                   </Popconfirm>
                 </Flex>

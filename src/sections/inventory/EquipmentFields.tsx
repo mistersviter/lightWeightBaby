@@ -7,6 +7,15 @@ type EquipmentFieldsProps = {
   form: FormInstance<EquipmentFormValues>
 }
 
+function requiresMountSize(kind: EquipmentKind | undefined) {
+  return (
+    kind === 'plate' ||
+    kind === 'handle' ||
+    kind === 'lock' ||
+    kind === 'barbell_bar'
+  )
+}
+
 export function EquipmentFields({ form }: EquipmentFieldsProps) {
   const kind = Form.useWatch('kind', form) as EquipmentKind | undefined
 
@@ -14,7 +23,7 @@ export function EquipmentFields({ form }: EquipmentFieldsProps) {
     <Row gutter={16}>
       <Col xs={24} md={12}>
         <Form.Item label="Название" name="name" rules={[{ required: true }]}>
-          <Input placeholder="Например, блин 1.25 кг" />
+          <Input placeholder="Например, скамья для жима или блин 1.25 кг" />
         </Form.Item>
       </Col>
       <Col xs={24} md={12}>
@@ -27,29 +36,24 @@ export function EquipmentFields({ form }: EquipmentFieldsProps) {
           <InputNumber min={1} style={{ width: '100%' }} />
         </Form.Item>
       </Col>
-      <Col xs={24} md={12}>
-        <Form.Item label="Посадка, мм" name="mountSizeMm">
-          <InputNumber min={0} step={1} style={{ width: '100%' }} />
-        </Form.Item>
-      </Col>
+
+      {requiresMountSize(kind) ? (
+        <Col xs={24} md={12}>
+          <Form.Item label="Посадка, мм" name="mountSizeMm">
+            <InputNumber min={0} step={1} style={{ width: '100%' }} />
+          </Form.Item>
+        </Col>
+      ) : null}
 
       {kind === 'plate' ? (
         <>
           <Col xs={24} md={8}>
-            <Form.Item
-              label="Вес одного блина, кг"
-              name="weightKg"
-              rules={[{ required: true }]}
-            >
+            <Form.Item label="Вес одного блина, кг" name="weightKg" rules={[{ required: true }]}>
               <InputNumber min={0} step={0.25} style={{ width: '100%' }} />
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>
-            <Form.Item
-              label="Толщина, мм"
-              name="thicknessMm"
-              rules={[{ required: true }]}
-            >
+            <Form.Item label="Толщина, мм" name="thicknessMm" rules={[{ required: true }]}>
               <InputNumber min={0} step={1} style={{ width: '100%' }} />
             </Form.Item>
           </Col>
@@ -61,11 +65,11 @@ export function EquipmentFields({ form }: EquipmentFieldsProps) {
         </>
       ) : null}
 
-      {kind === 'handle' ? (
+      {kind === 'handle' || kind === 'barbell_bar' ? (
         <>
           <Col xs={24} md={8}>
             <Form.Item
-              label="Вес рукоятки, кг"
+              label={kind === 'handle' ? 'Вес рукоятки, кг' : 'Вес грифа, кг'}
               name="weightKg"
               rules={[{ required: true }]}
             >
@@ -74,7 +78,11 @@ export function EquipmentFields({ form }: EquipmentFieldsProps) {
           </Col>
           <Col xs={24} md={8}>
             <Form.Item
-              label="Длина втулки на сторону, мм"
+              label={
+                kind === 'handle'
+                  ? 'Длина втулки на сторону, мм'
+                  : 'Длина втулки, мм'
+              }
               name="sleeveLengthMm"
               rules={[{ required: true }]}
             >
@@ -82,7 +90,10 @@ export function EquipmentFields({ form }: EquipmentFieldsProps) {
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>
-            <Form.Item label="Длина хвата, мм" name="gripLengthMm">
+            <Form.Item
+              label={kind === 'handle' ? 'Длина хвата, мм' : 'Длина центральной части, мм'}
+              name="gripLengthMm"
+            >
               <InputNumber min={0} step={1} style={{ width: '100%' }} />
             </Form.Item>
           </Col>
@@ -92,11 +103,7 @@ export function EquipmentFields({ form }: EquipmentFieldsProps) {
       {kind === 'lock' ? (
         <>
           <Col xs={24} md={8}>
-            <Form.Item
-              label="Вес замка, кг"
-              name="weightKg"
-              rules={[{ required: true }]}
-            >
+            <Form.Item label="Вес замка, кг" name="weightKg" rules={[{ required: true }]}>
               <InputNumber min={0} step={0.05} style={{ width: '100%' }} />
             </Form.Item>
           </Col>
@@ -113,16 +120,24 @@ export function EquipmentFields({ form }: EquipmentFieldsProps) {
         </>
       ) : null}
 
-      {kind !== 'plate' && kind !== 'handle' && kind !== 'lock' ? (
+      {kind === 'kettlebell' ? (
+        <Col xs={24} md={12}>
+          <Form.Item label="Вес, кг" name="weightKg" rules={[{ required: true }]}>
+            <InputNumber min={0} step={0.5} style={{ width: '100%' }} />
+          </Form.Item>
+        </Col>
+      ) : null}
+
+      {kind === 'band' ? (
         <>
           <Col xs={24} md={12}>
             <Form.Item label="Единица" name="unit">
-              <Input />
+              <Input placeholder="Например, уровень нагрузки" />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
             <Form.Item label="Шаг" name="increment">
-              <InputNumber min={0} step={0.5} style={{ width: '100%' }} />
+              <InputNumber min={0} step={1} style={{ width: '100%' }} />
             </Form.Item>
           </Col>
         </>

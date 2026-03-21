@@ -23,6 +23,18 @@ export const defaultData: AppData = {
   sprints: [],
 }
 
+type LegacyEquipmentKind = EquipmentItem['kind'] | 'weight' | 'accessory'
+type LegacyRequirementCategory =
+  | EquipmentRequirementCategory
+  | 'free_weight'
+  | 'accessory'
+
+type LegacyExerciseRequirement = {
+  category?: LegacyRequirementCategory
+  itemId?: string
+  quantity?: number
+}
+
 type LegacySessionEntry = SessionEntry & {
   dumbbellAssemblyId?: string
   reps?: number
@@ -43,24 +55,32 @@ function inferRequirementCategory(
     return 'other'
   }
 
-  if (equipmentItem.kind === 'machine') {
-    return 'machine'
+  switch (equipmentItem.kind) {
+    case 'machine':
+      return 'machine'
+    case 'cable_station':
+      return 'cable_station'
+    case 'band':
+      return 'band'
+    case 'kettlebell':
+      return 'kettlebell'
+    case 'bench':
+      return 'bench'
+    case 'pullup_bar':
+      return 'pullup_bar'
+    case 'dip_bars':
+      return 'dip_bars'
+    case 'rack':
+      return 'rack'
+    case 'barbell_bar':
+      return 'barbell'
+    case 'plate':
+    case 'handle':
+    case 'lock':
+      return 'dumbbell'
+    default:
+      return 'other'
   }
-
-  if (
-    equipmentItem.kind === 'plate' ||
-    equipmentItem.kind === 'handle' ||
-    equipmentItem.kind === 'lock' ||
-    equipmentItem.kind === 'weight'
-  ) {
-    return 'free_weight'
-  }
-
-  if (equipmentItem.kind === 'accessory') {
-    return 'accessory'
-  }
-
-  return 'other'
 }
 
 function normalizeEquipmentAssignments(
@@ -69,7 +89,10 @@ function normalizeEquipmentAssignments(
   return (assignments ?? [])
     .filter((assignment) => assignment.itemId)
     .map((assignment) => ({
-      itemType: assignment.itemType === 'assembly' ? ('assembly' as const) : ('equipment' as const),
+      itemType:
+        assignment.itemType === 'assembly'
+          ? ('assembly' as const)
+          : ('equipment' as const),
       itemId: assignment.itemId,
       quantity: Math.max(1, Number(assignment.quantity) || 1),
     }))
@@ -107,72 +130,78 @@ function normalizeData(data: AppData): AppData {
 
   return {
     ...data,
-    equipment: data.equipment.map((item) => ({
-      ...item,
-      kind: item.kind ?? 'accessory',
-      unit: item.unit ?? 'кг',
-      increment: item.increment ?? 0,
-      quantity: item.quantity ?? 1,
-      weightKg: item.weightKg ?? null,
-      thicknessMm:
-        ('thicknessMm' in item && item.thicknessMm !== undefined
-          ? item.thicknessMm
-          : 'thicknessCm' in item && item.thicknessCm !== undefined
-            ? Number(item.thicknessCm) * 10
-            : null) ?? null,
-      diameterMm:
-        ('diameterMm' in item && item.diameterMm !== undefined
-          ? item.diameterMm
-          : 'diameterCm' in item && item.diameterCm !== undefined
-            ? Number(item.diameterCm) * 10
-            : null) ?? null,
-      sleeveLengthMm:
-        ('sleeveLengthMm' in item && item.sleeveLengthMm !== undefined
-          ? item.sleeveLengthMm
-          : 'sleeveLengthCm' in item && item.sleeveLengthCm !== undefined
-            ? Number(item.sleeveLengthCm) * 10
-            : null) ?? null,
-      gripLengthMm:
-        ('gripLengthMm' in item && item.gripLengthMm !== undefined
-          ? item.gripLengthMm
-          : 'gripLengthCm' in item && item.gripLengthCm !== undefined
-            ? Number(item.gripLengthCm) * 10
-            : null) ?? null,
-      mountSizeMm:
-        ('mountSizeMm' in item && item.mountSizeMm !== undefined
-          ? item.mountSizeMm
-          : 'mountStandard' in item && item.mountStandard !== undefined
-            ? Number.parseFloat(String(item.mountStandard).replace(',', '.'))
-            : null) ?? null,
-      notes: item.notes ?? '',
-    })),
+    equipment: data.equipment.map((item) => {
+      const legacyKind = item.kind as LegacyEquipmentKind
+
+      return {
+        ...item,
+        kind:
+          legacyKind === 'weight' || legacyKind === 'accessory'
+            ? 'accessory_other'
+            : item.kind ?? 'accessory_other',
+        unit: item.unit ?? 'кг',
+        increment: item.increment ?? 0,
+        quantity: item.quantity ?? 1,
+        weightKg: item.weightKg ?? null,
+        thicknessMm:
+          ('thicknessMm' in item && item.thicknessMm !== undefined
+            ? item.thicknessMm
+            : 'thicknessCm' in item && item.thicknessCm !== undefined
+              ? Number(item.thicknessCm) * 10
+              : null) ?? null,
+        diameterMm:
+          ('diameterMm' in item && item.diameterMm !== undefined
+            ? item.diameterMm
+            : 'diameterCm' in item && item.diameterCm !== undefined
+              ? Number(item.diameterCm) * 10
+              : null) ?? null,
+        sleeveLengthMm:
+          ('sleeveLengthMm' in item && item.sleeveLengthMm !== undefined
+            ? item.sleeveLengthMm
+            : 'sleeveLengthCm' in item && item.sleeveLengthCm !== undefined
+              ? Number(item.sleeveLengthCm) * 10
+              : null) ?? null,
+        gripLengthMm:
+          ('gripLengthMm' in item && item.gripLengthMm !== undefined
+            ? item.gripLengthMm
+            : 'gripLengthCm' in item && item.gripLengthCm !== undefined
+              ? Number(item.gripLengthCm) * 10
+              : null) ?? null,
+        mountSizeMm:
+          ('mountSizeMm' in item && item.mountSizeMm !== undefined
+            ? item.mountSizeMm
+            : 'mountStandard' in item && item.mountStandard !== undefined
+              ? Number.parseFloat(String(item.mountStandard).replace(',', '.'))
+              : null) ?? null,
+        notes: item.notes ?? '',
+      }
+    }),
     dumbbellAssemblies: data.dumbbellAssemblies ?? [],
     exercises: data.exercises.map((exercise) => {
       const legacyExercise = exercise as typeof exercise & {
         equipmentIds?: string[]
-      } & {
-        equipmentRequirements?: Array<{
-          category?: EquipmentRequirementCategory
-          itemId?: string
-          quantity?: number
-        }>
+        equipmentRequirements?: Array<LegacyExerciseRequirement>
       }
 
       return {
         ...exercise,
         equipmentRequirements: Array.isArray(legacyExercise.equipmentRequirements)
-          ? legacyExercise.equipmentRequirements.map((requirement: {
-              category?: EquipmentRequirementCategory
-              itemId?: string
-              quantity?: number
-            }) => ({
-              category: requirement.category
-                ? requirement.category
-                : requirement.itemId
-                  ? inferRequirementCategory(requirement.itemId, data.equipment, assemblyIds)
-                  : 'other',
-              quantity: Math.max(1, Number(requirement.quantity) || 1),
-            }))
+          ? legacyExercise.equipmentRequirements.map((requirement: LegacyExerciseRequirement) => {
+              const legacyCategory = requirement.category
+
+              return {
+                category: legacyCategory
+                  ? legacyCategory === 'free_weight'
+                    ? 'dumbbell'
+                    : legacyCategory === 'accessory'
+                      ? 'other'
+                      : legacyCategory
+                  : requirement.itemId
+                    ? inferRequirementCategory(requirement.itemId, data.equipment, assemblyIds)
+                    : 'other',
+                quantity: Math.max(1, Number(requirement.quantity) || 1),
+              }
+            })
           : Array.isArray(legacyExercise.equipmentIds)
             ? legacyExercise.equipmentIds.map((itemId) => ({
                 category: inferRequirementCategory(itemId, data.equipment, assemblyIds),
@@ -185,12 +214,16 @@ function normalizeData(data: AppData): AppData {
     workoutTemplates: (data.workoutTemplates ?? []).map((template) => ({
       ...template,
       notes: template.notes ?? '',
-      entries: template.entries.map((entry) => normalizeSessionEntry(entry as LegacySessionEntry)),
+      entries: template.entries.map((entry) =>
+        normalizeSessionEntry(entry as LegacySessionEntry),
+      ),
     })),
     scheduledWorkouts: (data.scheduledWorkouts ?? []).map((item) => ({ ...item })),
     sessions: (data.sessions ?? []).map((session) => ({
       ...session,
-      entries: session.entries.map((entry) => normalizeSessionEntry(entry as LegacySessionEntry)),
+      entries: session.entries.map((entry) =>
+        normalizeSessionEntry(entry as LegacySessionEntry),
+      ),
     })),
   }
 }

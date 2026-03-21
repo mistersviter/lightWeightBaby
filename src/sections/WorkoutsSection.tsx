@@ -162,7 +162,9 @@ function formatExerciseRequirements(exercise: Exercise | undefined) {
   }
 
   const categoryLabels = new Map(
-    equipmentRequirementCategoryOptions.map((option) => [option.value, option.label]),
+    equipmentRequirementCategoryOptions.flatMap((group) =>
+      group.options.map((option) => [option.value, option.label] as const),
+    ),
   )
 
   return exercise.equipmentRequirements

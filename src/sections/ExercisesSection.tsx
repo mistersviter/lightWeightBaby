@@ -39,8 +39,8 @@ function EquipmentRequirementsFields() {
         <Flex vertical gap={12}>
           {fields.length === 0 ? (
             <Text type="secondary">
-              Для упражнения лучше указывать не конкретный снаряд, а требуемый
-              класс инвентаря. Например: `гантель × 2`.
+              Лучше указывать не конкретный предмет, а что именно нужно упражнению.
+              Например: `гантель × 2` и `скамья × 1`.
             </Text>
           ) : null}
 
@@ -48,13 +48,13 @@ function EquipmentRequirementsFields() {
             <Row key={field.key} gutter={12} align="bottom">
               <Col xs={24} md={15}>
                 <Form.Item
-                  label={index === 0 ? 'Класс инвентаря' : ' '}
+                  label={index === 0 ? 'Что требуется' : ' '}
                   name={[field.name, 'category']}
-                  rules={[{ required: true, message: 'Выберите класс инвентаря' }]}
+                  rules={[{ required: true, message: 'Выберите тип требования' }]}
                 >
                   <Select
                     options={equipmentRequirementCategoryOptions}
-                    placeholder="Например, гантель"
+                    placeholder="Например, гантель или скамья"
                   />
                 </Form.Item>
               </Col>
@@ -68,12 +68,12 @@ function EquipmentRequirementsFields() {
                 </Form.Item>
               </Col>
               <Col xs={8} md={4}>
-                <Form.Item label={index === 0 ? ' ' : ' '}>
+                <Form.Item label=" ">
                   <Button
                     danger
                     type="text"
                     icon={<DeleteOutlined />}
-                    aria-label="Удалить требование к инвентарю"
+                    aria-label="Удалить требование"
                     onClick={() => remove(field.name)}
                   />
                 </Form.Item>
@@ -103,13 +103,15 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
   const updateExercise = useAppStore((state) => state.updateExercise)
   const deleteExercise = useAppStore((state) => state.deleteExercise)
 
-  const categoryLabelMap = useMemo(
-    () =>
-      new Map(
-        equipmentRequirementCategoryOptions.map((option) => [option.value, option.label]),
-      ),
-    [],
-  )
+  const categoryLabelMap = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const group of equipmentRequirementCategoryOptions) {
+      for (const option of group.options) {
+        map.set(option.value, option.label)
+      }
+    }
+    return map
+  }, [])
 
   const formatRequirements = (requirements: ExerciseEquipmentRequirement[]) => {
     if (requirements.length === 0) {
@@ -166,7 +168,7 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
             </Form.Item>
           </Col>
           <Col span={24}>
-            <Form.Item label="Требования к инвентарю">
+            <Form.Item label="Что нужно для упражнения">
               <EquipmentRequirementsFields />
             </Form.Item>
           </Col>
@@ -223,9 +225,7 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
                 </Flex>
               </div>
               <Flex vertical gap={6}>
-                <Text type="secondary">
-                  {formatRequirements(exercise.equipmentRequirements)}
-                </Text>
+                <Text type="secondary">{formatRequirements(exercise.equipmentRequirements)}</Text>
                 <Text type="secondary">{exercise.notes || 'Без заметки'}</Text>
               </Flex>
             </Card>
@@ -251,7 +251,7 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
           <Form.Item label="Мышечная группа" name="primaryMuscleGroup">
             <Input />
           </Form.Item>
-          <Form.Item label="Требования к инвентарю">
+          <Form.Item label="Что нужно для упражнения">
             <EquipmentRequirementsFields />
           </Form.Item>
           <Form.Item label="Заметка" name="notes">
