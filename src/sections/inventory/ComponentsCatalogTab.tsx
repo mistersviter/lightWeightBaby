@@ -1,9 +1,11 @@
+import { useMemo, useState } from 'react'
 import {
   Button,
   Card,
   Empty,
   Flex,
   Form,
+  Input,
   Popconfirm,
   Tag,
   Typography,
@@ -12,7 +14,11 @@ import {
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
 import type { EquipmentItem } from '../../types'
 import { EquipmentFields } from './EquipmentFields'
-import { formatEquipmentSummary, formatEquipmentTitle, getKindLabel } from './helpers'
+import {
+  formatEquipmentSummary,
+  formatEquipmentTitle,
+  getKindLabel,
+} from './helpers'
 import type { EquipmentFormValues } from './types'
 
 const { Text, Title } = Typography
@@ -32,14 +38,36 @@ export function ComponentsCatalogTab({
   onEdit,
   onDelete,
 }: ComponentsCatalogTabProps) {
+  const [searchValue, setSearchValue] = useState('')
+
+  const filteredEquipment = useMemo(() => {
+    const query = searchValue.trim().toLowerCase()
+    if (!query) {
+      return equipment
+    }
+
+    return equipment.filter((item) => {
+      const searchableText = [
+        formatEquipmentTitle(item),
+        formatEquipmentSummary(item),
+        getKindLabel(item.kind),
+        item.notes,
+      ]
+        .join(' ')
+        .toLowerCase()
+
+      return searchableText.includes(query)
+    })
+  }, [equipment, searchValue])
+
   return (
     <Flex vertical gap={24}>
       <Card size="small" className="entity-item-card">
         <Title level={5}>Каталог инвентаря</Title>
         <Text type="secondary">
-          Здесь мы храним не только детали для сборки гантелей, но и все, что может
-          понадобиться упражнениям: скамьи, турники, стойки, тренажеры и другие опорные
-          или нагрузочные снаряды.
+          Здесь мы храним не только детали для сборки гантелей, но и все, что
+          может понадобиться упражнениям: скамьи, турники, стойки, тренажеры и
+          другие опорные или нагрузочные снаряды.
         </Text>
         <div style={{ marginTop: 16 }}>
           <Form form={form} layout="vertical" onFinish={onSubmit}>
@@ -51,11 +79,20 @@ export function ComponentsCatalogTab({
         </div>
       </Card>
 
+      <Input.Search
+        allowClear
+        placeholder="Поиск по каталогу компонентов"
+        value={searchValue}
+        onChange={(event) => setSearchValue(event.target.value)}
+      />
+
       {equipment.length === 0 ? (
         <Empty description="Инвентарь пока не добавлен" />
+      ) : filteredEquipment.length === 0 ? (
+        <Empty description="Ничего не найдено" />
       ) : (
         <Flex vertical gap={12}>
-          {equipment.map((item) => (
+          {filteredEquipment.map((item) => (
             <Card
               key={item.id}
               size="small"
@@ -64,7 +101,9 @@ export function ComponentsCatalogTab({
             >
               <div className="entity-item-card__header">
                 <div>
-                  <div className="entity-item-card__title">{formatEquipmentTitle(item)}</div>
+                  <div className="entity-item-card__title">
+                    {formatEquipmentTitle(item)}
+                  </div>
                   <Flex gap={8} wrap="wrap">
                     <Tag>{getKindLabel(item.kind)}</Tag>
                     {item.mountSizeMm ? <Tag color="blue">{item.mountSizeMm} мм</Tag> : null}

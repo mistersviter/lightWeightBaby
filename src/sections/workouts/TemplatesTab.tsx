@@ -1,12 +1,21 @@
 import { DeleteOutlined, EditOutlined, PlayCircleOutlined } from '@ant-design/icons'
-import { Button, Empty, Flex, Popconfirm, Typography, Card } from 'antd'
-import type { ReactNode } from 'react'
-import type { WorkoutTemplate } from '../../types'
+import {
+  Button,
+  Card,
+  Empty,
+  Flex,
+  Input,
+  Popconfirm,
+  Typography,
+} from 'antd'
+import { useMemo, useState, type ReactNode } from 'react'
+import type { Exercise, WorkoutTemplate } from '../../types'
 
 const { Paragraph, Text, Title } = Typography
 
 type TemplatesTabProps = {
   templates: WorkoutTemplate[]
+  exerciseMap: Map<string, Exercise>
   renderEntries: (entries: WorkoutTemplate['entries']) => ReactNode
   onStart: (template: WorkoutTemplate) => void
   onSchedule: (template: WorkoutTemplate) => void
@@ -16,12 +25,37 @@ type TemplatesTabProps = {
 
 export function TemplatesTab({
   templates,
+  exerciseMap,
   renderEntries,
   onStart,
   onSchedule,
   onEdit,
   onDelete,
 }: TemplatesTabProps) {
+  const [searchValue, setSearchValue] = useState('')
+
+  const filteredTemplates = useMemo(() => {
+    const query = searchValue.trim().toLowerCase()
+    if (!query) {
+      return templates
+    }
+
+    return templates.filter((template) => {
+      const searchableText = [
+        template.name,
+        template.notes,
+        ...template.entries.flatMap((entry) => {
+          const exercise = exerciseMap.get(entry.exerciseId)
+          return [exercise?.name ?? '', exercise?.primaryMuscleGroup ?? '', entry.notes]
+        }),
+      ]
+        .join(' ')
+        .toLowerCase()
+
+      return searchableText.includes(query)
+    })
+  }, [exerciseMap, searchValue, templates])
+
   return (
     <Flex vertical gap={16}>
       <div>
@@ -32,11 +66,20 @@ export function TemplatesTab({
         </Paragraph>
       </div>
 
+      <Input.Search
+        allowClear
+        placeholder="Поиск по шаблонам тренировок"
+        value={searchValue}
+        onChange={(event) => setSearchValue(event.target.value)}
+      />
+
       {templates.length === 0 ? (
         <Empty description="Шаблонов пока нет" />
+      ) : filteredTemplates.length === 0 ? (
+        <Empty description="Ничего не найдено" />
       ) : (
         <Flex vertical gap={12}>
-          {templates.map((template) => (
+          {filteredTemplates.map((template) => (
             <Card
               key={template.id}
               size="small"

@@ -17,7 +17,10 @@ import {
   Typography,
 } from 'antd'
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
-import { equipmentRequirementCategoryOptions, muscleGroupOptions } from '../constants'
+import {
+  equipmentRequirementCategoryOptions,
+  muscleGroupOptions,
+} from '../constants'
 import { useAppStore } from '../store/appStore'
 import type { Exercise, ExerciseEquipmentRequirement } from '../types'
 
@@ -46,8 +49,8 @@ function EquipmentRequirementsFields({
         <Flex vertical gap={12}>
           {fields.length === 0 ? (
             <Text type="secondary">
-              Указывай не конкретный предмет, а то, что нужно упражнению. Например:
-              `гантель × 2`, `скамья × 1`, `турник × 1`, `резина × 1`.
+              Указывай не конкретный предмет, а то, что нужно упражнению.
+              Например: `гантель × 2`, `скамья × 1`, `турник × 1`, `резина × 1`.
             </Text>
           ) : null}
 
@@ -105,6 +108,7 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
   const [form] = Form.useForm<ExerciseFormValues>()
   const [editForm] = Form.useForm<ExerciseFormValues>()
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null)
+  const [searchValue, setSearchValue] = useState('')
   const exercises = useAppStore((state) => state.data.exercises)
   const saveExercise = useAppStore((state) => state.saveExercise)
   const updateExercise = useAppStore((state) => state.updateExercise)
@@ -128,6 +132,29 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
     }
     return map
   }, [])
+
+  const filteredExercises = useMemo(() => {
+    const query = searchValue.trim().toLowerCase()
+    if (!query) {
+      return exercises
+    }
+
+    return exercises.filter((exercise) => {
+      const searchableText = [
+        exercise.name,
+        exercise.primaryMuscleGroup,
+        exercise.notes,
+        ...exercise.equipmentRequirements.map(
+          (requirement) =>
+            categoryLabelMap.get(requirement.category) ?? requirement.category,
+        ),
+      ]
+        .join(' ')
+        .toLowerCase()
+
+      return searchableText.includes(query)
+    })
+  }, [categoryLabelMap, exercises, searchValue])
 
   const formatRequirements = (requirements: ExerciseEquipmentRequirement[]) => {
     if (requirements.length === 0) {
@@ -228,8 +255,8 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
               <Checkbox>Упражнение с собственным весом</Checkbox>
             </Form.Item>
             <Text type="secondary">
-              Для подтягиваний, отжиманий и похожих упражнений. Дополнительный инвентарь
-              вроде турника, брусьев или резины можно указать ниже.
+              Для подтягиваний, отжиманий и похожих упражнений. Дополнительный
+              инвентарь вроде турника, брусьев или резины можно указать ниже.
             </Text>
           </Col>
           <Col span={24}>
@@ -248,11 +275,20 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
         </Button>
       </Form>
 
+      <Input.Search
+        allowClear
+        placeholder="Поиск по упражнениям"
+        value={searchValue}
+        onChange={(event) => setSearchValue(event.target.value)}
+      />
+
       {exercises.length === 0 ? (
         <Empty description="Упражнения пока не созданы" />
+      ) : filteredExercises.length === 0 ? (
+        <Empty description="Ничего не найдено" />
       ) : (
         <Flex vertical gap={12}>
-          {exercises.map((exercise) => (
+          {filteredExercises.map((exercise) => (
             <Card
               key={exercise.id}
               size="small"
@@ -290,7 +326,9 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
                 </Flex>
               </div>
               <Flex vertical gap={6}>
-                <Text type="secondary">{formatRequirements(exercise.equipmentRequirements)}</Text>
+                <Text type="secondary">
+                  {formatRequirements(exercise.equipmentRequirements)}
+                </Text>
                 <Text type="secondary">{exercise.notes || 'Без заметки'}</Text>
               </Flex>
             </Card>

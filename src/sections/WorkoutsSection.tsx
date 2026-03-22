@@ -251,6 +251,7 @@ export function WorkoutsSection() {
             children: (
               <TemplatesTab
                 templates={recentWorkoutTemplates}
+                exerciseMap={exerciseMap}
                 renderEntries={renderEntries}
                 onStart={(template) => void startWorkoutFromTemplate(template.id)}
                 onSchedule={openScheduleModal}
