@@ -1,5 +1,5 @@
 import { DeleteOutlined, EditOutlined, PlayCircleOutlined } from '@ant-design/icons'
-import { Button, Card, Empty, Flex, Popconfirm, Typography } from 'antd'
+import { Button, Empty, Flex, Popconfirm, Typography, Card } from 'antd'
 import type { ReactNode } from 'react'
 import type { WorkoutTemplate } from '../../types'
 
@@ -23,18 +23,26 @@ export function TemplatesTab({
   onDelete,
 }: TemplatesTabProps) {
   return (
-    <Card className="entity-item-card">
-      <Title level={5}>Шаблоны тренировок</Title>
-      <Paragraph type="secondary">
-        Здесь хранятся все шаблоны. Их можно запускать сразу, назначать на дату,
-        редактировать и использовать повторно.
-      </Paragraph>
+    <Flex vertical gap={16}>
+      <div>
+        <Title level={5}>Шаблоны тренировок</Title>
+        <Paragraph type="secondary">
+          Здесь хранятся все шаблоны. Их можно запускать сразу, назначать на дату,
+          редактировать и использовать повторно.
+        </Paragraph>
+      </div>
+
       {templates.length === 0 ? (
         <Empty description="Шаблонов пока нет" />
       ) : (
         <Flex vertical gap={12}>
           {templates.map((template) => (
-            <Card key={template.id} size="small" className="entity-item-card">
+            <Card
+              key={template.id}
+              size="small"
+              className="entity-item-card"
+              styles={{ body: { padding: 16 } }}
+            >
               <div className="entity-item-card__header">
                 <div>
                   <div className="entity-item-card__title">{template.name}</div>
@@ -82,6 +90,6 @@ export function TemplatesTab({
           ))}
         </Flex>
       )}
-    </Card>
+    </Flex>
   )
 }
