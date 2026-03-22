@@ -1,4 +1,15 @@
-import { Button, Card, Col, Empty, Flex, InputNumber, Row, Select, Tag, Typography } from 'antd'
+import {
+  Button,
+  Card,
+  Col,
+  Empty,
+  Flex,
+  InputNumber,
+  Row,
+  Select,
+  Tag,
+  Typography,
+} from 'antd'
 import type { DumbbellBuildResult } from '../../dumbbellBuilder'
 import type { EquipmentItem } from '../../types'
 
@@ -33,23 +44,26 @@ function BuildResultCard({
 }) {
   return (
     <Card size="small">
-      <div className="entity-item-card__header">
-        <div>
-          <div className="entity-item-card__title">{result.totalWeightKg} кг</div>
+      <Flex justify="space-between" align="flex-start" gap={12} wrap="wrap">
+        <Flex vertical gap={4}>
+          <Title level={5} style={{ margin: 0 }}>
+            {result.totalWeightKg} кг
+          </Title>
           <Text type="secondary">
             {exact
               ? `Толщина на сторону: ${result.sideThicknessMm} мм`
               : `Отклонение: ${result.deltaKg > 0 ? '+' : ''}${result.deltaKg} кг · толщина на сторону ${result.sideThicknessMm} мм`}
           </Text>
-        </div>
-        <Flex gap={8} align="center">
+        </Flex>
+        <Flex gap={8} align="center" wrap="wrap">
           <Tag color={exact ? 'green' : 'gold'}>{exact ? 'Точно' : 'Близко'}</Tag>
           <Button size="small" type={exact ? 'primary' : 'default'} onClick={() => onSave(result)}>
             Создать снаряд
           </Button>
         </Flex>
-      </div>
-      <Flex vertical gap={4}>
+      </Flex>
+
+      <Flex vertical gap={4} style={{ marginTop: 12 }}>
         {result.lock ? (
           <Text>
             Замок: 1 шт на сторону ({result.lock.weightKg} кг, {result.lock.thicknessMm} мм)
@@ -57,7 +71,8 @@ function BuildResultCard({
         ) : null}
         {result.platesPerSide.map((plate) => (
           <Text key={plate.equipmentId}>
-            {plate.name}: {plate.countPerSide} шт на сторону ({plate.weightKg} кг, {plate.thicknessMm} мм)
+            {plate.name}: {plate.countPerSide} шт на сторону ({plate.weightKg} кг,{' '}
+            {plate.thicknessMm} мм)
           </Text>
         ))}
       </Flex>
@@ -119,53 +134,61 @@ export function DumbbellBuilderTab({
       <Card size="small" className="entity-item-card">
         <Title level={5}>Подбор конфигурации</Title>
         <Text type="secondary">
-          Сборка считается для одной разборной гантели. Приложение учитывает симметричную
-          развесовку, доступное количество блинов, посадочный размер и суммарную толщину
-          блинов на каждой втулке.
+          Сборка считается для одной разборной гантели. Приложение учитывает
+          симметричную развесовку, доступное количество блинов, посадочный размер
+          и суммарную толщину блинов на каждой втулке.
         </Text>
         <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
           <Col xs={24} md={12}>
-            <div className="inventory-helper-label">Рукоятка</div>
-            <Select
-              style={{ width: '100%' }}
-              value={effectiveHandleId || undefined}
-              options={handles.map((item) => ({
-                value: item.id,
-                label: `${item.name} · втулка ${item.sleeveLengthMm ?? 0} мм`,
-              }))}
-              placeholder="Выберите рукоятку"
-              onChange={onHandleChange}
-            />
+            <Flex vertical gap={8}>
+              <Text strong>Рукоятка</Text>
+              <Select
+                style={{ width: '100%' }}
+                value={effectiveHandleId || undefined}
+                options={handles.map((item) => ({
+                  value: item.id,
+                  label: `${item.name} · втулка ${item.sleeveLengthMm ?? 0} мм`,
+                }))}
+                placeholder="Выберите рукоятку"
+                onChange={onHandleChange}
+              />
+            </Flex>
           </Col>
           <Col xs={24} md={12}>
-            <div className="inventory-helper-label">Замок</div>
-            <Select
-              allowClear
-              style={{ width: '100%' }}
-              value={selectedLockId || undefined}
-              options={locks.map((item) => ({
-                value: item.id,
-                label: `${item.name} · ${item.weightKg ?? 0} кг`,
-              }))}
-              placeholder="Без замка"
-              onChange={(value) => onLockChange(value ?? '')}
-            />
+            <Flex vertical gap={8}>
+              <Text strong>Замок</Text>
+              <Select
+                allowClear
+                style={{ width: '100%' }}
+                value={selectedLockId || undefined}
+                options={locks.map((item) => ({
+                  value: item.id,
+                  label: `${item.name} · ${item.weightKg ?? 0} кг`,
+                }))}
+                placeholder="Без замка"
+                onChange={(value) => onLockChange(value ?? '')}
+              />
+            </Flex>
           </Col>
           <Col xs={24} md={12}>
-            <div className="inventory-helper-label">Целевой вес, кг</div>
-            <InputNumber
-              min={0}
-              step={0.25}
-              style={{ width: '100%' }}
-              value={targetWeightKg}
-              onChange={(value) => onTargetWeightChange(value ?? 0)}
-            />
+            <Flex vertical gap={8}>
+              <Text strong>Целевой вес, кг</Text>
+              <InputNumber
+                min={0}
+                step={0.25}
+                style={{ width: '100%' }}
+                value={targetWeightKg}
+                onChange={(value) => onTargetWeightChange(value ?? 0)}
+              />
+            </Flex>
           </Col>
           <Col xs={24} md={12}>
-            <div className="inventory-helper-label">Все возможные конфигурации</div>
-            <Button block onClick={onGenerateAll} disabled={!selectedHandle || plates.length === 0}>
-              Сгенерировать все варианты
-            </Button>
+            <Flex vertical gap={8}>
+              <Text strong>Все возможные конфигурации</Text>
+              <Button block onClick={onGenerateAll} disabled={!selectedHandle || plates.length === 0}>
+                Сгенерировать все варианты
+              </Button>
+            </Flex>
           </Col>
         </Row>
       </Card>
@@ -186,7 +209,8 @@ export function DumbbellBuilderTab({
               ) : null}
               {selectedLock ? (
                 <Tag color="gold">
-                  Замок: {selectedLock.name} · {selectedLock.weightKg ?? 0} кг · {selectedLock.thicknessMm ?? 0} мм
+                  Замок: {selectedLock.name} · {selectedLock.weightKg ?? 0} кг ·{' '}
+                  {selectedLock.thicknessMm ?? 0} мм
                 </Tag>
               ) : null}
             </Flex>
@@ -196,7 +220,12 @@ export function DumbbellBuilderTab({
             <Empty description="Не удалось найти ни одной допустимой сборки под текущие ограничения" />
           ) : (
             <Flex vertical gap={16}>
-              <BuildResultGroup title="Точные совпадения" results={exactResults} exact onSaveBuild={onSaveBuild} />
+              <BuildResultGroup
+                title="Точные совпадения"
+                results={exactResults}
+                exact
+                onSaveBuild={onSaveBuild}
+              />
               <BuildResultGroup
                 title="Ближайшие варианты"
                 results={nearestResults.slice(0, 6)}

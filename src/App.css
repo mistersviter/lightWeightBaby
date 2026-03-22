@@ -21,27 +21,6 @@
   background: linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
 }
 
-.today-workout-card__header .ant-typography h4,
-.today-workout-card__header .ant-typography + .ant-typography {
-  margin-top: 8px;
-}
-
-.today-workout-card__item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.today-workout-card__item-title {
-  font-weight: 600;
-  color: #0f172a;
-}
-
-.today-workout-card__item-meta {
-  color: #64748b;
-}
-
 .page-loader {
   min-height: 100vh;
 }
@@ -81,12 +60,6 @@
   margin-bottom: 4px;
 }
 
-.inventory-helper-label {
-  margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 500;
-}
-
 .workout-session-summary {
   display: flex;
   flex-direction: column;
@@ -94,27 +67,10 @@
 }
 
 .workout-entry-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
   padding: 10px 12px;
   border: 1px solid #edf1f7;
   border-radius: 12px;
   background: #fafcff;
-}
-
-.workout-entry-summary__title {
-  font-weight: 600;
-}
-
-.workout-entry-summary__sets {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.workout-entry-summary__set {
-  line-height: 1.4;
 }
 
 .workout-builder-card .ant-card-body {

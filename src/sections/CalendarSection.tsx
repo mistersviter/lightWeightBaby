@@ -187,9 +187,7 @@ export function CalendarSection() {
                     <div className="workout-session-summary">
                       {dayPlannedWorkouts.map((item) => (
                         <div key={item.id} className="workout-entry-summary">
-                          <div className="workout-entry-summary__title">
-                            {item.templateName}
-                          </div>
+                          <Text strong>{item.templateName}</Text>
                           <Flex gap={8} wrap="wrap">
                             <Button
                               size="small"
