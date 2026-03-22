@@ -83,6 +83,41 @@ export interface SessionEquipmentAssignment {
   quantity: number
 }
 
+export type ActiveWorkoutSetStatus = 'pending' | 'completed' | 'skipped'
+
+export interface ActiveWorkoutSet {
+  id: string
+  plannedReps: number
+  actualReps: number
+  plannedWeightKg: number | null
+  actualWeightKg: number | null
+  plannedEquipmentAssignments: SessionEquipmentAssignment[]
+  actualEquipmentAssignments: SessionEquipmentAssignment[]
+  notes: string
+  status: ActiveWorkoutSetStatus
+}
+
+export interface ActiveWorkoutEntry {
+  id: string
+  exerciseId: string
+  exerciseName: string
+  notes: string
+  sets: ActiveWorkoutSet[]
+}
+
+export interface ActiveWorkout {
+  id: string
+  date: string
+  title: string
+  notes: string
+  sourceType: 'template' | 'scheduled'
+  sourceTemplateId: string
+  sourceScheduledWorkoutId: string | null
+  startedAt: string
+  updatedAt: string
+  entries: ActiveWorkoutEntry[]
+}
+
 export interface DumbbellAssemblyPlateLoad {
   equipmentId: string
   name: string
@@ -163,6 +198,7 @@ export interface AppData {
   exercises: Exercise[]
   workoutTemplates: WorkoutTemplate[]
   scheduledWorkouts: ScheduledWorkout[]
+  activeWorkout: ActiveWorkout | null
   sessions: WorkoutSession[]
   measurements: MeasurementRecord[]
   sprints: Sprint[]

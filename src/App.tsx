@@ -20,6 +20,7 @@ import { InventorySection } from './sections/InventorySection'
 import { MeasurementsSection } from './sections/MeasurementsSection'
 import { SprintsSection } from './sections/SprintsSection'
 import { WorkoutsSection } from './sections/WorkoutsSection'
+import { ActiveWorkoutScreen } from './sections/workouts/ActiveWorkoutScreen'
 import { useAppStore } from './store/appStore'
 
 const { Content } = Layout
@@ -38,9 +39,15 @@ function App() {
   const deleteScheduledWorkout = useAppStore(
     (state) => state.deleteScheduledWorkout,
   )
+  const startScheduledWorkout = useAppStore((state) => state.startScheduledWorkout)
+  const updateActiveWorkoutSet = useAppStore((state) => state.updateActiveWorkoutSet)
+  const finishActiveWorkout = useAppStore((state) => state.finishActiveWorkout)
+  const discardActiveWorkout = useAppStore((state) => state.discardActiveWorkout)
+  const activeWorkout = useAppStore((state) => state.activeWorkout)
   const data = useAppStore((state) => state.data)
   const {
     activeUser,
+    actualEquipmentOptions,
     nextSprint,
     sessionsThisWeek,
     todaySessions,
@@ -168,27 +175,47 @@ function App() {
               <Alert type="error" title={error} showIcon style={{ marginBottom: 16 }} />
             ) : null}
 
-            <TodayWorkoutCard
-              todaySessions={todaySessions}
-              todayScheduledWorkouts={todayScheduledWorkouts}
-              onCompleteScheduledWorkout={(scheduledWorkoutId) =>
-                void completeScheduledWorkout(scheduledWorkoutId)
-              }
-              onCancelScheduledWorkout={(scheduledWorkoutId) =>
-                void deleteScheduledWorkout(scheduledWorkoutId)
-              }
-            />
+            {activeWorkout ? (
+              <ActiveWorkoutScreen
+                activeWorkout={activeWorkout}
+                exercises={data.exercises}
+                equipment={data.equipment}
+                dumbbellAssemblies={data.dumbbellAssemblies}
+                actualEquipmentOptions={actualEquipmentOptions}
+                onUpdateSet={(entryId, setId, values) =>
+                  void updateActiveWorkoutSet(entryId, setId, values)
+                }
+                onFinish={() => void finishActiveWorkout()}
+                onDiscard={() => void discardActiveWorkout()}
+              />
+            ) : (
+              <>
+                <TodayWorkoutCard
+                  todaySessions={todaySessions}
+                  todayScheduledWorkouts={todayScheduledWorkouts}
+                  onStartScheduledWorkout={(scheduledWorkoutId) =>
+                    void startScheduledWorkout(scheduledWorkoutId)
+                  }
+                  onCompleteScheduledWorkout={(scheduledWorkoutId) =>
+                    void completeScheduledWorkout(scheduledWorkoutId)
+                  }
+                  onCancelScheduledWorkout={(scheduledWorkoutId) =>
+                    void deleteScheduledWorkout(scheduledWorkoutId)
+                  }
+                />
 
-            <StatsOverview
-              sessionsCount={data.sessions.length}
-              sessionsThisWeek={sessionsThisWeek}
-              exercisesCount={data.exercises.length}
-              equipmentCount={data.equipment.length}
-              measurementsCount={data.measurements.length}
-              nextSprint={nextSprint}
-            />
+                <StatsOverview
+                  sessionsCount={data.sessions.length}
+                  sessionsThisWeek={sessionsThisWeek}
+                  exercisesCount={data.exercises.length}
+                  equipmentCount={data.equipment.length}
+                  measurementsCount={data.measurements.length}
+                  nextSprint={nextSprint}
+                />
 
-            <Tabs items={tabItems} />
+                <Tabs items={tabItems} />
+              </>
+            )}
           </>
         )}
       </Content>

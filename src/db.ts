@@ -1,4 +1,5 @@
 import type {
+  ActiveWorkout,
   AppData,
   EquipmentItem,
   EquipmentRequirementCategory,
@@ -18,6 +19,7 @@ export const defaultData: AppData = {
   exercises: [],
   workoutTemplates: [],
   scheduledWorkouts: [],
+  activeWorkout: null,
   sessions: [],
   measurements: [],
   sprints: [],
@@ -140,6 +142,47 @@ function normalizeSessionEntry(entry: LegacySessionEntry): SessionEntry {
   }
 }
 
+function normalizeActiveWorkout(activeWorkout: ActiveWorkout | null | undefined) {
+  if (!activeWorkout) {
+    return null
+  }
+
+  return {
+    ...activeWorkout,
+    sourceType:
+      activeWorkout.sourceType === 'scheduled' ? ('scheduled' as const) : ('template' as const),
+    sourceScheduledWorkoutId: activeWorkout.sourceScheduledWorkoutId ?? null,
+    entries: (activeWorkout.entries ?? []).map((entry) => ({
+      ...entry,
+      notes: entry.notes ?? '',
+      sets: (entry.sets ?? []).map((set) => ({
+        ...set,
+        plannedReps: Math.max(0, Number(set.plannedReps) || 0),
+        actualReps: Math.max(0, Number(set.actualReps ?? set.plannedReps) || 0),
+        plannedWeightKg:
+          set.plannedWeightKg === undefined || set.plannedWeightKg === null
+            ? null
+            : Math.max(0, Number(set.plannedWeightKg) || 0),
+        actualWeightKg:
+          set.actualWeightKg === undefined || set.actualWeightKg === null
+            ? null
+            : Math.max(0, Number(set.actualWeightKg) || 0),
+        plannedEquipmentAssignments: normalizeEquipmentAssignments(
+          set.plannedEquipmentAssignments,
+        ),
+        actualEquipmentAssignments: normalizeEquipmentAssignments(
+          set.actualEquipmentAssignments,
+        ),
+        notes: set.notes ?? '',
+        status:
+          set.status === 'completed' || set.status === 'skipped'
+            ? set.status
+            : ('pending' as const),
+      })),
+    })),
+  }
+}
+
 function normalizeData(data: AppData): AppData {
   const assemblyIds = new Set((data.dumbbellAssemblies ?? []).map((item) => item.id))
 
@@ -234,6 +277,7 @@ function normalizeData(data: AppData): AppData {
       ),
     })),
     scheduledWorkouts: (data.scheduledWorkouts ?? []).map((item) => ({ ...item })),
+    activeWorkout: normalizeActiveWorkout(data.activeWorkout),
     sessions: (data.sessions ?? []).map((session) => ({
       ...session,
       entries: session.entries.map((entry) =>

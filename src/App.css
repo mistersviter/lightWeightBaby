@@ -186,6 +186,38 @@
   margin-bottom: 12px;
 }
 
+.active-workout-card {
+  border-color: #91caff;
+}
+
+.active-workout-entry-card {
+  border-color: #d9e1ec;
+}
+
+.active-workout-set-card {
+  border-color: #dbe5f0;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+}
+
+.active-workout-set-card__planned {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid #e8eef6;
+  border-radius: 12px;
+  background: #f8fbff;
+}
+
+.active-workout-set-card--completed {
+  border-color: #b7eb8f;
+}
+
+.active-workout-set-card--skipped {
+  border-color: #ffccc7;
+  background: #fffaf9;
+}
+
 .calendar-day-card .ant-card-head {
   border-bottom-color: #e8eef6;
 }

@@ -1,23 +1,25 @@
-import { Alert, Button, Card, Flex, Space, Tag, Typography } from 'antd';
-import type { ScheduledWorkout, WorkoutSession } from '../types';
+import { Alert, Button, Card, Flex, Space, Tag, Typography } from 'antd'
+import type { ScheduledWorkout, WorkoutSession } from '../types'
 
-const { Text, Title } = Typography;
+const { Text, Title } = Typography
 
 type TodayWorkoutCardProps = {
-  todaySessions: WorkoutSession[];
-  todayScheduledWorkouts: ScheduledWorkout[];
-  onCompleteScheduledWorkout: (scheduledWorkoutId: string) => void;
-  onCancelScheduledWorkout: (scheduledWorkoutId: string) => void;
-};
+  todaySessions: WorkoutSession[]
+  todayScheduledWorkouts: ScheduledWorkout[]
+  onStartScheduledWorkout: (scheduledWorkoutId: string) => void
+  onCompleteScheduledWorkout: (scheduledWorkoutId: string) => void
+  onCancelScheduledWorkout: (scheduledWorkoutId: string) => void
+}
 
 export function TodayWorkoutCard({
   todaySessions,
   todayScheduledWorkouts,
+  onStartScheduledWorkout,
   onCompleteScheduledWorkout,
   onCancelScheduledWorkout,
 }: TodayWorkoutCardProps) {
   if (todaySessions.length === 0 && todayScheduledWorkouts.length === 0) {
-    return null;
+    return null
   }
 
   return (
@@ -28,8 +30,8 @@ export function TodayWorkoutCard({
             <Tag color="blue">Сегодня</Tag>
             <Title level={4}>Фокус дня</Title>
             <Text type="secondary">
-              Текущие тренировки на сегодня собраны здесь, чтобы их было видно
-              сразу после входа.
+              Здесь собраны тренировки на сегодня, чтобы к ним можно было быстро
+              перейти сразу после входа.
             </Text>
           </div>
         </div>
@@ -38,7 +40,7 @@ export function TodayWorkoutCard({
           <Alert
             type="info"
             showIcon
-            title="Запланированы тренировки"
+            title="Запланированные тренировки"
             description={
               <Flex vertical gap={8}>
                 {todayScheduledWorkouts.map((item) => (
@@ -55,9 +57,15 @@ export function TodayWorkoutCard({
                       <Button
                         size="small"
                         type="primary"
+                        onClick={() => onStartScheduledWorkout(item.id)}
+                      >
+                        Начать
+                      </Button>
+                      <Button
+                        size="small"
                         onClick={() => onCompleteScheduledWorkout(item.id)}
                       >
-                        Выполнить
+                        Завершить сразу
                       </Button>
                       <Button
                         size="small"
@@ -97,5 +105,5 @@ export function TodayWorkoutCard({
         ) : null}
       </Flex>
     </Card>
-  );
+  )
 }

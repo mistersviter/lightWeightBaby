@@ -8,6 +8,10 @@ import {
   todayInput,
 } from '../constants'
 import type {
+  ActiveWorkout,
+  ActiveWorkoutEntry,
+  ActiveWorkoutSet,
+  ActiveWorkoutSetStatus,
   AppData,
   DumbbellAssembly,
   EquipmentItem,
@@ -89,6 +93,7 @@ type AppStore = {
   calendarMode: CalendarMode
   anchorDate: string
   sessionDraft: SessionEntry[]
+  activeWorkout: ActiveWorkout | null
   load: () => Promise<void>
   clearError: () => void
   loginUser: (login: string) => void
@@ -119,6 +124,21 @@ type AppStore = {
   scheduleWorkoutTemplate: (templateId: string, date: string) => Promise<void>
   deleteScheduledWorkout: (scheduledWorkoutId: string) => Promise<void>
   completeScheduledWorkout: (scheduledWorkoutId: string) => Promise<void>
+  startWorkoutFromTemplate: (templateId: string, date?: string) => Promise<void>
+  startScheduledWorkout: (scheduledWorkoutId: string) => Promise<void>
+  updateActiveWorkoutSet: (
+    entryId: string,
+    setId: string,
+    values: Partial<{
+      actualReps: number
+      actualWeightKg: number | null
+      actualEquipmentAssignments: SessionEquipmentAssignment[]
+      notes: string
+      status: ActiveWorkoutSetStatus
+    }>,
+  ) => Promise<void>
+  finishActiveWorkout: () => Promise<void>
+  discardActiveWorkout: () => Promise<void>
   saveMeasurement: (values: MeasurementInput) => Promise<void>
   saveSprint: (values: SprintInput) => Promise<void>
   setCalendarMode: (mode: CalendarMode) => void
@@ -184,6 +204,90 @@ function normalizeSessionEntries(entries: SessionEntryInput[]): SessionEntry[] {
   }))
 }
 
+function cloneAssignments(assignments: SessionEquipmentAssignment[]) {
+  return assignments.map((assignment) => ({ ...assignment }))
+}
+
+function buildActiveWorkoutEntries(
+  entries: SessionEntry[],
+  exercises: Exercise[],
+): ActiveWorkoutEntry[] {
+  return entries.map((entry) => ({
+    id: createId('active-entry'),
+    exerciseId: entry.exerciseId,
+    exerciseName:
+      exercises.find((exercise) => exercise.id === entry.exerciseId)?.name ??
+      'Упражнение',
+    notes: entry.notes,
+    sets: entry.sets.map<ActiveWorkoutSet>((set) => ({
+      id: createId('active-set'),
+      plannedReps: set.reps,
+      actualReps: set.reps,
+      plannedWeightKg: set.weightKg,
+      actualWeightKg: set.weightKg,
+      plannedEquipmentAssignments: cloneAssignments(set.equipmentAssignments),
+      actualEquipmentAssignments: cloneAssignments(set.equipmentAssignments),
+      notes: '',
+      status: 'pending',
+    })),
+  }))
+}
+
+function buildActiveWorkout(
+  template: WorkoutTemplate,
+  exercises: Exercise[],
+  options: {
+    date: string
+    sourceType: 'template' | 'scheduled'
+    sourceScheduledWorkoutId: string | null
+  },
+): ActiveWorkout {
+  const now = new Date().toISOString()
+
+  return {
+    id: createId('active-workout'),
+    date: options.date,
+    title: template.name,
+    notes: template.notes,
+    sourceType: options.sourceType,
+    sourceTemplateId: template.id,
+    sourceScheduledWorkoutId: options.sourceScheduledWorkoutId,
+    startedAt: now,
+    updatedAt: now,
+    entries: buildActiveWorkoutEntries(template.entries, exercises),
+  }
+}
+
+function toSessionEntriesFromActiveWorkout(activeWorkout: ActiveWorkout): SessionEntry[] {
+  return activeWorkout.entries
+    .map<SessionEntry | null>((entry) => {
+      const sets = entry.sets
+        .filter((set) => set.status !== 'skipped')
+        .map((set) => ({
+          reps: Math.max(0, Number(set.actualReps) || 0),
+          weightKg:
+            set.actualWeightKg === undefined || set.actualWeightKg === null
+              ? null
+              : Math.max(0, Number(set.actualWeightKg) || 0),
+          equipmentAssignments: normalizeEquipmentAssignments(
+            set.actualEquipmentAssignments,
+          ),
+        }))
+
+      if (sets.length === 0) {
+        return null
+      }
+
+      return {
+        id: createId('entry'),
+        exerciseId: entry.exerciseId,
+        sets,
+        notes: entry.notes?.trim() || '',
+      }
+    })
+    .filter((entry): entry is SessionEntry => Boolean(entry))
+}
+
 export const useAppStore = create<AppStore>((set, get) => ({
   data: defaultData,
   isReady: false,
@@ -191,11 +295,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
   calendarMode: 'week',
   anchorDate: todayInput,
   sessionDraft: [],
+  activeWorkout: null,
 
   load: async () => {
     try {
       const loaded = await readAppData()
-      set({ data: loaded, isReady: true, error: '' })
+      set({ data: loaded, activeWorkout: loaded.activeWorkout, isReady: true, error: '' })
     } catch {
       set({
         isReady: true,
@@ -302,7 +407,27 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   deleteEquipment: async (equipmentId) => {
-    const { data } = get()
+    const { data, activeWorkout } = get()
+    const nextActiveWorkout = activeWorkout
+      ? {
+          ...activeWorkout,
+          updatedAt: new Date().toISOString(),
+          entries: activeWorkout.entries.map((entry) => ({
+            ...entry,
+            sets: entry.sets.map((set) => ({
+              ...set,
+              plannedEquipmentAssignments: set.plannedEquipmentAssignments.filter(
+                (assignment) =>
+                  !(assignment.itemType === 'equipment' && assignment.itemId === equipmentId),
+              ),
+              actualEquipmentAssignments: set.actualEquipmentAssignments.filter(
+                (assignment) =>
+                  !(assignment.itemType === 'equipment' && assignment.itemId === equipmentId),
+              ),
+            })),
+          })),
+        }
+      : null
     const nextData = {
       ...data,
       equipment: data.equipment.filter((item) => item.id !== equipmentId),
@@ -332,9 +457,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
           })),
         })),
       })),
+      activeWorkout: nextActiveWorkout,
     }
 
-    set({ data: nextData })
+    set({ data: nextData, activeWorkout: nextActiveWorkout })
     await persistData(nextData, (error) => set({ error }))
   },
 
@@ -398,7 +524,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   deleteExercise: async (exerciseId) => {
-    const { data, sessionDraft } = get()
+    const { data, sessionDraft, activeWorkout } = get()
+    const nextActiveWorkout = activeWorkout
+      ? {
+          ...activeWorkout,
+          updatedAt: new Date().toISOString(),
+          entries: activeWorkout.entries.filter((entry) => entry.exerciseId !== exerciseId),
+        }
+      : null
     const nextData = {
       ...data,
       exercises: data.exercises.filter((exercise) => exercise.id !== exerciseId),
@@ -406,10 +539,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
         ...template,
         entries: template.entries.filter((entry) => entry.exerciseId !== exerciseId),
       })),
+      activeWorkout: nextActiveWorkout,
     }
 
     set({
       data: nextData,
+      activeWorkout: nextActiveWorkout,
       sessionDraft: sessionDraft.filter((entry) => entry.exerciseId !== exerciseId),
     })
     await persistData(nextData, (error) => set({ error }))
@@ -613,6 +748,145 @@ export const useAppStore = create<AppStore>((set, get) => ({
       ),
     }
     set({ data: nextData })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  startWorkoutFromTemplate: async (templateId, date = toDateInput(new Date())) => {
+    const { data } = get()
+    const template = data.workoutTemplates.find((item) => item.id === templateId)
+    if (!template) {
+      return
+    }
+
+    const nextActiveWorkout = buildActiveWorkout(template, data.exercises, {
+      date,
+      sourceType: 'template',
+      sourceScheduledWorkoutId: null,
+    })
+    const nextData = {
+      ...data,
+      activeWorkout: nextActiveWorkout,
+    }
+
+    set({ data: nextData, activeWorkout: nextActiveWorkout })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  startScheduledWorkout: async (scheduledWorkoutId) => {
+    const { data } = get()
+    const scheduled = data.scheduledWorkouts.find((item) => item.id === scheduledWorkoutId)
+    if (!scheduled) {
+      return
+    }
+
+    const template = data.workoutTemplates.find((item) => item.id === scheduled.templateId)
+    if (!template) {
+      return
+    }
+
+    const nextActiveWorkout = buildActiveWorkout(template, data.exercises, {
+      date: scheduled.date,
+      sourceType: 'scheduled',
+      sourceScheduledWorkoutId: scheduled.id,
+    })
+    const nextData = {
+      ...data,
+      activeWorkout: nextActiveWorkout,
+    }
+
+    set({ data: nextData, activeWorkout: nextActiveWorkout })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  updateActiveWorkoutSet: async (entryId, setId, values) => {
+    const { data, activeWorkout } = get()
+    if (!activeWorkout) {
+      return
+    }
+
+    const nextActiveWorkout: ActiveWorkout = {
+      ...activeWorkout,
+      updatedAt: new Date().toISOString(),
+      entries: activeWorkout.entries.map((entry) =>
+        entry.id !== entryId
+          ? entry
+          : {
+              ...entry,
+              sets: entry.sets.map((set) =>
+                set.id !== setId
+                  ? set
+                  : {
+                      ...set,
+                      actualReps:
+                        values.actualReps === undefined
+                          ? set.actualReps
+                          : Math.max(0, Number(values.actualReps) || 0),
+                      actualWeightKg:
+                        values.actualWeightKg === undefined
+                          ? set.actualWeightKg
+                          : values.actualWeightKg === null
+                            ? null
+                            : Math.max(0, Number(values.actualWeightKg) || 0),
+                      actualEquipmentAssignments:
+                        values.actualEquipmentAssignments === undefined
+                          ? set.actualEquipmentAssignments
+                          : normalizeEquipmentAssignments(values.actualEquipmentAssignments),
+                      notes:
+                        values.notes === undefined ? set.notes : values.notes.trim(),
+                      status: values.status ?? set.status,
+                    },
+              ),
+            },
+      ),
+    }
+    const nextData = {
+      ...data,
+      activeWorkout: nextActiveWorkout,
+    }
+
+    set({ data: nextData, activeWorkout: nextActiveWorkout })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  finishActiveWorkout: async () => {
+    const { data, activeWorkout } = get()
+    if (!activeWorkout) {
+      return
+    }
+
+    const nextSession: WorkoutSession = {
+      id: createId('session'),
+      date: activeWorkout.date,
+      title: activeWorkout.title.trim() || 'Тренировка',
+      notes: activeWorkout.notes?.trim() || '',
+      entries: toSessionEntriesFromActiveWorkout(activeWorkout),
+      createdAt: new Date().toISOString(),
+    }
+
+    const nextData = {
+      ...data,
+      activeWorkout: null,
+      sessions: [nextSession, ...data.sessions],
+      scheduledWorkouts:
+        activeWorkout.sourceScheduledWorkoutId === null
+          ? data.scheduledWorkouts
+          : data.scheduledWorkouts.filter(
+              (item) => item.id !== activeWorkout.sourceScheduledWorkoutId,
+            ),
+    }
+
+    set({ data: nextData, activeWorkout: null })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  discardActiveWorkout: async () => {
+    const { data } = get()
+    const nextData = {
+      ...data,
+      activeWorkout: null,
+    }
+
+    set({ data: nextData, activeWorkout: null })
     await persistData(nextData, (error) => set({ error }))
   },
 

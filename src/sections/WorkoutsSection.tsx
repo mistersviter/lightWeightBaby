@@ -49,6 +49,9 @@ export function WorkoutsSection() {
   const updateWorkoutTemplate = useAppStore((state) => state.updateWorkoutTemplate)
   const deleteWorkoutTemplate = useAppStore((state) => state.deleteWorkoutTemplate)
   const scheduleWorkoutTemplate = useAppStore((state) => state.scheduleWorkoutTemplate)
+  const startWorkoutFromTemplate = useAppStore(
+    (state) => state.startWorkoutFromTemplate,
+  )
   const { actualEquipmentOptions, exerciseOptions, recentSessions, recentWorkoutTemplates } =
     useDashboardData()
 
@@ -247,6 +250,7 @@ export function WorkoutsSection() {
               <TemplatesTab
                 templates={recentWorkoutTemplates}
                 renderEntries={renderEntries}
+                onStart={(template) => void startWorkoutFromTemplate(template.id)}
                 onSchedule={openScheduleModal}
                 onEdit={openTemplateEditModal}
                 onDelete={(templateId) => void deleteWorkoutTemplate(templateId)}

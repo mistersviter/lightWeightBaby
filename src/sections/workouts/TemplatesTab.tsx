@@ -1,4 +1,4 @@
-import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, PlayCircleOutlined } from '@ant-design/icons'
 import { Button, Card, Empty, Flex, Popconfirm, Typography } from 'antd'
 import type { ReactNode } from 'react'
 import type { WorkoutTemplate } from '../../types'
@@ -8,6 +8,7 @@ const { Paragraph, Text, Title } = Typography
 type TemplatesTabProps = {
   templates: WorkoutTemplate[]
   renderEntries: (entries: WorkoutTemplate['entries']) => ReactNode
+  onStart: (template: WorkoutTemplate) => void
   onSchedule: (template: WorkoutTemplate) => void
   onEdit: (template: WorkoutTemplate) => void
   onDelete: (templateId: string) => void
@@ -16,6 +17,7 @@ type TemplatesTabProps = {
 export function TemplatesTab({
   templates,
   renderEntries,
+  onStart,
   onSchedule,
   onEdit,
   onDelete,
@@ -24,8 +26,8 @@ export function TemplatesTab({
     <Card className="entity-item-card">
       <Title level={5}>Шаблоны тренировок</Title>
       <Paragraph type="secondary">
-        Здесь хранятся все шаблоны. Их можно редактировать, назначать на дату и
-        использовать повторно.
+        Здесь хранятся все шаблоны. Их можно запускать сразу, назначать на дату,
+        редактировать и использовать повторно.
       </Paragraph>
       {templates.length === 0 ? (
         <Empty description="Шаблонов пока нет" />
@@ -38,7 +40,15 @@ export function TemplatesTab({
                   <div className="entity-item-card__title">{template.name}</div>
                   <Text type="secondary">{template.entries.length} упражнений</Text>
                 </div>
-                <Flex gap={4}>
+                <Flex gap={4} wrap="wrap">
+                  <Button
+                    size="small"
+                    type="primary"
+                    icon={<PlayCircleOutlined />}
+                    onClick={() => onStart(template)}
+                  >
+                    Начать
+                  </Button>
                   <Button size="small" onClick={() => onSchedule(template)}>
                     Назначить
                   </Button>
