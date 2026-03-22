@@ -18,9 +18,12 @@ import { useDashboardData } from '../hooks/useDashboardData'
 import { useAppStore } from '../store/appStore'
 import {
   formatShortDate,
+  formatWeekday,
   getMeasurementsForDay,
   getScheduledWorkoutsForDay,
   getSessionsForDay,
+  isTodayDateInput,
+  isWeekendDateInput,
   toDateInput,
 } from '../utils'
 
@@ -122,9 +125,7 @@ export function CalendarSection() {
             ) : null}
           </Flex>
         ) : (
-          <Empty
-            description="Сначала создайте хотя бы один шаблон тренировки во вкладке Тренировки"
-          />
+          <Empty description="Сначала создайте хотя бы один шаблон тренировки во вкладке Тренировки" />
         )}
       </Card>
 
@@ -136,6 +137,8 @@ export function CalendarSection() {
             scheduledWorkouts,
             date,
           )
+          const isToday = isTodayDateInput(date)
+          const isWeekend = isWeekendDateInput(date)
 
           return (
             <Col
@@ -145,19 +148,31 @@ export function CalendarSection() {
               xl={calendarMode === 'month' ? 6 : 6}
               key={date}
             >
-              <Card size="small" title={formatShortDate(date)}>
+              <Card
+                size="small"
+                className={`calendar-day-card${isToday ? ' calendar-day-card--today' : ''}${
+                  isWeekend ? ' calendar-day-card--weekend' : ''
+                }`}
+                title={
+                  <div className="calendar-day-card__title">
+                    <span className="calendar-day-card__weekday">
+                      {formatWeekday(date)}
+                    </span>
+                    <span className="calendar-day-card__date">
+                      {formatShortDate(date)}
+                    </span>
+                  </div>
+                }
+                extra={isToday ? <Tag color="blue">Сегодня</Tag> : null}
+              >
                 <Flex vertical gap={10}>
                   <Text type="secondary">
                     {daySessions.length} выполненных тренировок
                   </Text>
 
                   <Flex gap={8} wrap="wrap">
-                    {daySessions.length > 0 ? (
-                      <Tag color="blue">Тренировка</Tag>
-                    ) : null}
-                    {dayMeasurements.length > 0 ? (
-                      <Tag color="gold">Замер</Tag>
-                    ) : null}
+                    {daySessions.length > 0 ? <Tag color="blue">Тренировка</Tag> : null}
+                    {dayMeasurements.length > 0 ? <Tag color="gold">Замер</Tag> : null}
                     {dayPlannedWorkouts.length > 0 ? (
                       <Tag color="purple">
                         Запланировано: {dayPlannedWorkouts.length}
@@ -185,7 +200,7 @@ export function CalendarSection() {
                               danger
                               onClick={() => void deleteScheduledWorkout(item.id)}
                             >
-                              Убрать
+                          Отменить
                             </Button>
                           </Flex>
                         </div>

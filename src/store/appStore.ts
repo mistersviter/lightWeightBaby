@@ -23,7 +23,7 @@ import type {
   WorkoutTemplate,
   WorkoutSession,
 } from '../types'
-import { addDays, createId, toDateInput } from '../utils'
+import { addDays, createId, parseDateInput, toDateInput } from '../utils'
 
 type EquipmentInput = {
   name: string
@@ -663,7 +663,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   moveCalendar: (direction) => {
     const { anchorDate, calendarMode } = get()
-    const base = new Date(anchorDate)
+    const base = parseDateInput(anchorDate)
     const delta = calendarMode === 'day' ? 1 : calendarMode === 'week' ? 7 : 30
     set({ anchorDate: toDateInput(addDays(base, delta * direction)) })
   },

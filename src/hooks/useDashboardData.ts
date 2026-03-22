@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { today } from '../constants'
 import { useAppStore } from '../store/appStore'
 import type { EquipmentItem } from '../types'
-import { addDays, startOfDay, toDateInput } from '../utils'
+import { addDays, parseDateInput, startOfDay, toDateInput } from '../utils'
 
 function isAssignableEquipment(item: EquipmentItem) {
   return item.kind !== 'plate' && item.kind !== 'handle' && item.kind !== 'lock'
@@ -81,13 +81,25 @@ export function useDashboardData() {
     const end = startOfDay(new Date()).getTime()
 
     return data.sessions.filter((session) => {
-      const time = startOfDay(new Date(session.date)).getTime()
+      const time = startOfDay(parseDateInput(session.date)).getTime()
       return time >= start && time <= end
     }).length
   }, [data.sessions])
 
+  const todayDate = toDateInput(new Date())
+
+  const todaySessions = useMemo(
+    () => data.sessions.filter((session) => session.date === todayDate),
+    [data.sessions, todayDate],
+  )
+
+  const todayScheduledWorkouts = useMemo(
+    () => data.scheduledWorkouts.filter((item) => item.date === todayDate),
+    [data.scheduledWorkouts, todayDate],
+  )
+
   const calendarDays = useMemo(() => {
-    const base = startOfDay(new Date(anchorDate))
+    const base = startOfDay(parseDateInput(anchorDate))
     if (calendarMode === 'day') {
       return [toDateInput(base)]
     }
@@ -170,6 +182,9 @@ export function useDashboardData() {
     recentSprints,
     nextSprint,
     sessionsThisWeek,
+    todayDate,
+    todaySessions,
+    todayScheduledWorkouts,
     calendarDays,
     actualEquipmentOptions,
     exerciseOptions,

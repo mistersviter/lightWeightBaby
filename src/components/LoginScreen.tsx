@@ -54,7 +54,7 @@ export function LoginScreen(props: LoginScreenProps) {
                 ))}
               </Flex>
             ) : null}
-            {error ? <Alert type="error" message={error} showIcon /> : null}
+            {error ? <Alert type="error" title={error} showIcon /> : null}
           </Flex>
         </Card>
       </Col>

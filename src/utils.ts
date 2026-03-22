@@ -5,6 +5,11 @@ import type {
   WorkoutSession,
 } from './types'
 
+export function parseDateInput(value: string) {
+  const [year, month, day] = value.split('-').map(Number)
+  return new Date(year, (month || 1) - 1, day || 1)
+}
+
 export function createId(prefix: string) {
   const random = Math.random().toString(36).slice(2, 8)
   return `${prefix}-${Date.now()}-${random}`
@@ -15,14 +20,20 @@ export function formatDate(date: string) {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
-  }).format(new Date(date))
+  }).format(parseDateInput(date))
 }
 
 export function formatShortDate(date: string) {
   return new Intl.DateTimeFormat('ru-RU', {
     day: '2-digit',
     month: '2-digit',
-  }).format(new Date(date))
+  }).format(parseDateInput(date))
+}
+
+export function formatWeekday(date: string) {
+  return new Intl.DateTimeFormat('ru-RU', {
+    weekday: 'short',
+  }).format(parseDateInput(date))
 }
 
 export function startOfDay(date: Date) {
@@ -38,7 +49,19 @@ export function addDays(date: Date, amount: number) {
 }
 
 export function toDateInput(date: Date) {
-  return date.toISOString().slice(0, 10)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export function isTodayDateInput(date: string) {
+  return date === toDateInput(new Date())
+}
+
+export function isWeekendDateInput(date: string) {
+  const day = parseDateInput(date).getDay()
+  return day === 0 || day === 6
 }
 
 export function getSessionsForDay(sessions: WorkoutSession[], date: string) {
@@ -60,11 +83,11 @@ export function getScheduledWorkoutsForDay(
 }
 
 export function getSprintEndDate(sprint: Sprint) {
-  return addDays(new Date(sprint.startDate), sprint.durationDays - 1)
+  return addDays(parseDateInput(sprint.startDate), sprint.durationDays - 1)
 }
 
 export function getSprintProgress(sprint: Sprint, today: Date) {
-  const start = startOfDay(new Date(sprint.startDate)).getTime()
+  const start = startOfDay(parseDateInput(sprint.startDate)).getTime()
   const end = startOfDay(getSprintEndDate(sprint)).getTime()
   const now = startOfDay(today).getTime()
 
@@ -84,17 +107,17 @@ export function getSprintSnapshot(
   sessions: WorkoutSession[],
   measurements: MeasurementRecord[],
 ) {
-  const start = startOfDay(new Date(sprint.startDate)).getTime()
+  const start = startOfDay(parseDateInput(sprint.startDate)).getTime()
   const end = startOfDay(getSprintEndDate(sprint)).getTime()
 
   const sprintSessions = sessions.filter((session) => {
-    const time = startOfDay(new Date(session.date)).getTime()
+    const time = startOfDay(parseDateInput(session.date)).getTime()
     return time >= start && time <= end
   })
 
   const sprintMeasurements = measurements
     .filter((measurement) => {
-      const time = startOfDay(new Date(measurement.date)).getTime()
+      const time = startOfDay(parseDateInput(measurement.date)).getTime()
       return time >= start && time <= end
     })
     .sort((left, right) => left.date.localeCompare(right.date))

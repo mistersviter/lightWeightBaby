@@ -12,6 +12,7 @@ import { AppLoader } from './components/AppLoader'
 import { DashboardHeader } from './components/DashboardHeader'
 import { LoginScreen } from './components/LoginScreen'
 import { StatsOverview } from './components/StatsOverview'
+import { TodayWorkoutCard } from './components/TodayWorkoutCard'
 import { useDashboardData } from './hooks/useDashboardData'
 import { CalendarSection } from './sections/CalendarSection'
 import { ExercisesSection } from './sections/ExercisesSection'
@@ -31,8 +32,20 @@ function App() {
   const loginUser = useAppStore((state) => state.loginUser)
   const switchUser = useAppStore((state) => state.switchUser)
   const logout = useAppStore((state) => state.logout)
+  const completeScheduledWorkout = useAppStore(
+    (state) => state.completeScheduledWorkout,
+  )
+  const deleteScheduledWorkout = useAppStore(
+    (state) => state.deleteScheduledWorkout,
+  )
   const data = useAppStore((state) => state.data)
-  const { activeUser, nextSprint, sessionsThisWeek } = useDashboardData()
+  const {
+    activeUser,
+    nextSprint,
+    sessionsThisWeek,
+    todaySessions,
+    todayScheduledWorkouts,
+  } = useDashboardData()
 
   useEffect(() => {
     void load()
@@ -152,8 +165,19 @@ function App() {
             <DashboardHeader login={activeUser.login} onLogout={logout} />
 
             {error ? (
-              <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} />
+              <Alert type="error" title={error} showIcon style={{ marginBottom: 16 }} />
             ) : null}
+
+            <TodayWorkoutCard
+              todaySessions={todaySessions}
+              todayScheduledWorkouts={todayScheduledWorkouts}
+              onCompleteScheduledWorkout={(scheduledWorkoutId) =>
+                void completeScheduledWorkout(scheduledWorkoutId)
+              }
+              onCancelScheduledWorkout={(scheduledWorkoutId) =>
+                void deleteScheduledWorkout(scheduledWorkoutId)
+              }
+            />
 
             <StatsOverview
               sessionsCount={data.sessions.length}

@@ -14,6 +14,34 @@
   margin-bottom: 16px;
 }
 
+.today-workout-card {
+  margin-bottom: 16px;
+  border: 1px solid #b6d7ff;
+  box-shadow: 0 12px 28px rgba(22, 119, 255, 0.1);
+  background: linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
+}
+
+.today-workout-card__header .ant-typography h4,
+.today-workout-card__header .ant-typography + .ant-typography {
+  margin-top: 8px;
+}
+
+.today-workout-card__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.today-workout-card__item-title {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.today-workout-card__item-meta {
+  color: #64748b;
+}
+
 .page-loader {
   min-height: 100vh;
 }
@@ -156,6 +184,39 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+}
+
+.calendar-day-card .ant-card-head {
+  border-bottom-color: #e8eef6;
+}
+
+.calendar-day-card__title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.calendar-day-card__weekday {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.calendar-day-card__date {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.calendar-day-card--today {
+  border-color: #91caff;
+  box-shadow: 0 10px 24px rgba(22, 119, 255, 0.12);
+}
+
+.calendar-day-card--weekend .calendar-day-card__weekday {
+  color: #d4380d;
 }
 
 .bulk-build-card.ant-card .ant-card-body {

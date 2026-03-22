@@ -359,7 +359,7 @@ export function InventorySection() {
             <Alert
               type="info"
               showIcon
-              message={`Рукоятка: ${selectedHandle.name}`}
+              title={`Рукоятка: ${selectedHandle.name}`}
               description={
                 selectedLock
                   ? `С замком ${selectedLock.name}. Показаны все допустимые конфигурации, которые помещаются на втулку и подходят по посадке.`
