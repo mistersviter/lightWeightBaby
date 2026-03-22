@@ -1,14 +1,14 @@
-import { Alert, Button, Card, Flex, Tag, Typography } from 'antd'
-import type { ScheduledWorkout, WorkoutSession } from '../types'
+import { Alert, Button, Card, Flex, Space, Tag, Typography } from 'antd';
+import type { ScheduledWorkout, WorkoutSession } from '../types';
 
-const { Text, Title } = Typography
+const { Text, Title } = Typography;
 
 type TodayWorkoutCardProps = {
-  todaySessions: WorkoutSession[]
-  todayScheduledWorkouts: ScheduledWorkout[]
-  onCompleteScheduledWorkout: (scheduledWorkoutId: string) => void
-  onCancelScheduledWorkout: (scheduledWorkoutId: string) => void
-}
+  todaySessions: WorkoutSession[];
+  todayScheduledWorkouts: ScheduledWorkout[];
+  onCompleteScheduledWorkout: (scheduledWorkoutId: string) => void;
+  onCancelScheduledWorkout: (scheduledWorkoutId: string) => void;
+};
 
 export function TodayWorkoutCard({
   todaySessions,
@@ -17,7 +17,7 @@ export function TodayWorkoutCard({
   onCancelScheduledWorkout,
 }: TodayWorkoutCardProps) {
   if (todaySessions.length === 0 && todayScheduledWorkouts.length === 0) {
-    return null
+    return null;
   }
 
   return (
@@ -28,7 +28,8 @@ export function TodayWorkoutCard({
             <Tag color="blue">Сегодня</Tag>
             <Title level={4}>Фокус дня</Title>
             <Text type="secondary">
-              Текущие тренировки на сегодня собраны здесь, чтобы их было видно сразу после входа.
+              Текущие тренировки на сегодня собраны здесь, чтобы их было видно
+              сразу после входа.
             </Text>
           </div>
         </div>
@@ -42,10 +43,14 @@ export function TodayWorkoutCard({
               <Flex vertical gap={8}>
                 {todayScheduledWorkouts.map((item) => (
                   <div key={item.id} className="today-workout-card__item">
-                    <div>
-                      <span className="today-workout-card__item-title">{item.templateName}</span>
-                      <span className="today-workout-card__item-meta">ждет выполнения</span>
-                    </div>
+                    <Space>
+                      <span className="today-workout-card__item-title">
+                        {item.templateName}
+                      </span>
+                      <span className="today-workout-card__item-meta">
+                        ждет выполнения
+                      </span>
+                    </Space>
                     <Flex gap={8} wrap="wrap">
                       <Button
                         size="small"
@@ -78,7 +83,9 @@ export function TodayWorkoutCard({
               <Flex vertical gap={8}>
                 {todaySessions.map((session) => (
                   <div key={session.id} className="today-workout-card__item">
-                    <span className="today-workout-card__item-title">{session.title}</span>
+                    <span className="today-workout-card__item-title">
+                      {session.title}
+                    </span>
                     <span className="today-workout-card__item-meta">
                       {session.entries.length} упражнений
                     </span>
@@ -90,5 +97,5 @@ export function TodayWorkoutCard({
         ) : null}
       </Flex>
     </Card>
-  )
+  );
 }
