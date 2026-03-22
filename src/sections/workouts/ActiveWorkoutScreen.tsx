@@ -31,6 +31,7 @@ import type {
   SessionEntry,
   SessionEquipmentAssignment,
 } from '../../types'
+import { formatDumbbellAssemblyShortLabel } from '../../utils'
 import { SessionSetsFields } from './SessionSetsFields'
 import type { EntryFormValues, EquipmentOptions } from './types'
 import {
@@ -193,7 +194,7 @@ export function ActiveWorkoutScreen({
     const map = new Map<string, string>()
     equipment.forEach((item) => map.set(`equipment:${item.id}`, item.name))
     dumbbellAssemblies.forEach((assembly) => {
-      map.set(`assembly:${assembly.id}`, assembly.name)
+      map.set(`assembly:${assembly.id}`, formatDumbbellAssemblyShortLabel(assembly))
     })
     return map
   }, [dumbbellAssemblies, equipment])

@@ -4,7 +4,7 @@ import { initialEntryForm } from '../constants'
 import { useDashboardData } from '../hooks/useDashboardData'
 import { appFormDefaults, useAppStore } from '../store/appStore'
 import type { SessionEntry, WorkoutSession, WorkoutTemplate } from '../types'
-import { toDateInput } from '../utils'
+import { formatDumbbellAssemblyShortLabel, toDateInput } from '../utils'
 import { CreateTemplateTab } from './workouts/CreateTemplateTab'
 import { EditSessionModal } from './workouts/EditSessionModal'
 import { EditTemplateModal } from './workouts/EditTemplateModal'
@@ -72,7 +72,7 @@ export function WorkoutsSection() {
     const map = new Map<string, string>()
     data.equipment.forEach((item) => map.set(`equipment:${item.id}`, item.name))
     data.dumbbellAssemblies.forEach((assembly) => {
-      map.set(`assembly:${assembly.id}`, assembly.name)
+      map.set(`assembly:${assembly.id}`, formatDumbbellAssemblyShortLabel(assembly))
     })
     return map
   }, [data.dumbbellAssemblies, data.equipment])

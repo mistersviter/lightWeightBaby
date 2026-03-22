@@ -2,7 +2,13 @@ import { useMemo } from 'react'
 import { today } from '../constants'
 import { useAppStore } from '../store/appStore'
 import type { EquipmentItem } from '../types'
-import { addDays, parseDateInput, startOfDay, toDateInput } from '../utils'
+import {
+  addDays,
+  formatDumbbellAssemblyShortLabel,
+  parseDateInput,
+  startOfDay,
+  toDateInput,
+} from '../utils'
 
 function isAssignableEquipment(item: EquipmentItem) {
   return item.kind !== 'plate' && item.kind !== 'handle' && item.kind !== 'lock'
@@ -131,7 +137,7 @@ export function useDashboardData() {
   const dumbbellAssemblyOptions = useMemo(
     () =>
       data.dumbbellAssemblies.map((assembly) => ({
-        label: assembly.name,
+        label: formatDumbbellAssemblyShortLabel(assembly),
         value: assembly.id,
       })),
     [data.dumbbellAssemblies],
@@ -158,7 +164,7 @@ export function useDashboardData() {
       {
         label: 'Сохраненные снаряды',
         options: data.dumbbellAssemblies.map((assembly) => ({
-          label: assembly.name,
+          label: formatDumbbellAssemblyShortLabel(assembly),
           value: `assembly:${assembly.id}`,
         })),
       },

@@ -1,4 +1,5 @@
 import type {
+  DumbbellAssembly,
   MeasurementRecord,
   ScheduledWorkout,
   Sprint,
@@ -140,4 +141,46 @@ export function getSprintSnapshot(
       first && last ? Number((last.bodyWeight - first.bodyWeight).toFixed(1)) : 0,
     measurementCount: sprintMeasurements.length,
   }
+}
+
+export function formatDumbbellAssemblyComposition(assembly: DumbbellAssembly) {
+  const parts: string[] = []
+
+  if (assembly.lockName) {
+    parts.push(`замок ${assembly.lockName}`)
+  }
+
+  if (assembly.platesPerSide.length > 0) {
+    parts.push(
+      assembly.platesPerSide
+        .map((plate) => `${plate.name} × ${plate.countPerSide}/сторона`)
+        .join(', '),
+    )
+  }
+
+  return parts.length > 0 ? parts.join(' • ') : 'только рукоятка'
+}
+
+export function formatDumbbellAssemblyLabel(assembly: DumbbellAssembly) {
+  return `${assembly.name} • ${formatDumbbellAssemblyComposition(assembly)}`
+}
+
+export function formatDumbbellAssemblyShortLabel(assembly: DumbbellAssembly) {
+  const compactParts: string[] = []
+
+  if (assembly.lockName) {
+    compactParts.push('замок')
+  }
+
+  if (assembly.platesPerSide.length > 0) {
+    compactParts.push(
+      assembly.platesPerSide
+        .map((plate) => `${plate.weightKg}×${plate.countPerSide}`)
+        .join(' / '),
+    )
+  }
+
+  return compactParts.length > 0
+    ? `${assembly.name} • ${compactParts.join(' • ')}`
+    : assembly.name
 }

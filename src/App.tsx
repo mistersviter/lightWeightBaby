@@ -25,6 +25,7 @@ import { ViewSessionDetailsModal } from './sections/workouts/ViewSessionDetailsM
 import { WorkoutEntrySummary } from './sections/workouts/WorkoutEntrySummary'
 import { useAppStore } from './store/appStore'
 import type { SessionEntry, WorkoutSession } from './types'
+import { formatDumbbellAssemblyShortLabel } from './utils'
 
 const { Content } = Layout
 
@@ -74,7 +75,7 @@ function App() {
     const map = new Map<string, string>()
     data.equipment.forEach((item) => map.set(`equipment:${item.id}`, item.name))
     data.dumbbellAssemblies.forEach((assembly) => {
-      map.set(`assembly:${assembly.id}`, assembly.name)
+      map.set(`assembly:${assembly.id}`, formatDumbbellAssemblyShortLabel(assembly))
     })
     return map
   }, [data.dumbbellAssemblies, data.equipment])

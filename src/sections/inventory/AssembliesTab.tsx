@@ -1,6 +1,7 @@
 import { DeleteOutlined } from '@ant-design/icons'
 import { Button, Card, Empty, Flex, Popconfirm, Tag, Typography } from 'antd'
 import type { DumbbellAssembly } from '../../types'
+import { formatDumbbellAssemblyComposition } from '../../utils'
 
 const { Text } = Typography
 
@@ -21,6 +22,7 @@ export function AssembliesTab({ dumbbellAssemblies, onDelete }: AssembliesTabPro
           <div className="entity-item-card__header">
             <div>
               <div className="entity-item-card__title">{assembly.name}</div>
+              <Text type="secondary">{formatDumbbellAssemblyComposition(assembly)}</Text>
             </div>
             <Popconfirm
               title="Удалить сборку?"
