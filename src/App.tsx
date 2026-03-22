@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Alert, Card, Layout, Space, Tabs } from 'antd'
+import { Alert, Card, Input, Layout, Modal, Space, Tabs } from 'antd'
 import {
   CalendarOutlined,
   LineChartOutlined,
@@ -30,12 +30,15 @@ const { Content } = Layout
 
 function App() {
   const [login, setLogin] = useState('')
+  const [renameLogin, setRenameLogin] = useState('')
+  const [renameModalOpen, setRenameModalOpen] = useState(false)
   const [viewingSession, setViewingSession] = useState<WorkoutSession | null>(null)
   const load = useAppStore((state) => state.load)
   const isReady = useAppStore((state) => state.isReady)
   const error = useAppStore((state) => state.error)
   const loginUser = useAppStore((state) => state.loginUser)
   const switchUser = useAppStore((state) => state.switchUser)
+  const renameActiveUser = useAppStore((state) => state.renameActiveUser)
   const logout = useAppStore((state) => state.logout)
   const completeScheduledWorkout = useAppStore(
     (state) => state.completeScheduledWorkout,
@@ -214,7 +217,14 @@ function App() {
           />
         ) : (
           <>
-            <DashboardHeader login={activeUser.login} onLogout={logout} />
+            <DashboardHeader
+              login={activeUser.login}
+              onRename={() => {
+                setRenameLogin(activeUser.login)
+                setRenameModalOpen(true)
+              }}
+              onLogout={logout}
+            />
 
             {error ? (
               <Alert type="error" title={error} showIcon style={{ marginBottom: 16 }} />
@@ -273,6 +283,35 @@ function App() {
               renderEntries={renderEntries}
               onClose={() => setViewingSession(null)}
             />
+
+            <Modal
+              title="Переименовать профиль"
+              open={renameModalOpen}
+              okText="Сохранить"
+              cancelText="Отмена"
+              onOk={async () => {
+                const success = await renameActiveUser(renameLogin)
+                if (success) {
+                  setRenameModalOpen(false)
+                }
+              }}
+              onCancel={() => {
+                setRenameModalOpen(false)
+                setRenameLogin(activeUser.login)
+              }}
+            >
+              <Input
+                value={renameLogin}
+                placeholder="Например, alex"
+                onChange={(event) => setRenameLogin(event.target.value)}
+                onPressEnter={async () => {
+                  const success = await renameActiveUser(renameLogin)
+                  if (success) {
+                    setRenameModalOpen(false)
+                  }
+                }}
+              />
+            </Modal>
           </>
         )}
       </Content>

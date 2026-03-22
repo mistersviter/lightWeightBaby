@@ -1,5 +1,12 @@
 import { create } from 'zustand'
-import { defaultData, readAppData, writeAppData } from '../db'
+import {
+  composeAppData,
+  defaultData,
+  defaultRootData,
+  defaultUserScopedData,
+  readAppData,
+  writeAppData,
+} from '../db'
 import {
   defaultMeasurementFormValues,
   defaultSprintFormValues,
@@ -26,6 +33,8 @@ import type {
   Sprint,
   WorkoutTemplate,
   WorkoutSession,
+  RootData,
+  UserScopedData,
 } from '../types'
 import { addDays, createId, parseDateInput, toDateInput } from '../utils'
 
@@ -98,6 +107,7 @@ type AppStore = {
   clearError: () => void
   loginUser: (login: string) => void
   switchUser: (userId: string) => void
+  renameActiveUser: (login: string) => Promise<boolean>
   logout: () => void
   saveEquipment: (values: EquipmentInput) => Promise<void>
   updateEquipment: (equipmentId: string, values: EquipmentInput) => Promise<void>
@@ -150,9 +160,52 @@ type AppStore = {
   moveCalendar: (direction: -1 | 1) => void
 }
 
+function extractScopedData(data: AppData): UserScopedData {
+  return {
+    equipment: data.equipment,
+    dumbbellAssemblies: data.dumbbellAssemblies,
+    exercises: data.exercises,
+    workoutTemplates: data.workoutTemplates,
+    scheduledWorkouts: data.scheduledWorkouts,
+    activeWorkout: data.activeWorkout,
+    sessions: data.sessions,
+    measurements: data.measurements,
+    sprints: data.sprints,
+  }
+}
+
+function syncRootData(rootData: RootData, data: AppData): RootData {
+  if (!data.activeUserId) {
+    return {
+      ...rootData,
+      activeUserId: null,
+      users: data.users,
+    }
+  }
+
+  return {
+    ...rootData,
+    activeUserId: data.activeUserId,
+    users: data.users,
+    userDataById: {
+      ...rootData.userDataById,
+      [data.activeUserId]: extractScopedData(data),
+    },
+  }
+}
+
+async function persistRootData(rootData: RootData, setError: (error: string) => void) {
+  try {
+    await writeAppData(rootData)
+  } catch {
+    setError('РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РёР·РјРµРЅРµРЅРёСЏ РІ IndexedDB.')
+  }
+}
+
 async function persistData(data: AppData, setError: (error: string) => void) {
   try {
-    await writeAppData(data)
+    const rootData = await readAppData()
+    await writeAppData(syncRootData(rootData, data))
   } catch {
     setError('Не удалось сохранить изменения в IndexedDB.')
   }
@@ -324,7 +377,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   load: async () => {
     try {
-      const loaded = await readAppData()
+      const loaded = composeAppData(await readAppData())
       set({ data: loaded, activeWorkout: loaded.activeWorkout, isReady: true, error: '' })
     } catch {
       set({
@@ -342,38 +395,96 @@ export const useAppStore = create<AppStore>((set, get) => ({
       return
     }
 
-    const { data } = get()
-    const existing = data.users.find((user) => user.login === normalized)
-    const newUserId = createId('user')
-    const nextData = existing
-      ? { ...data, activeUserId: existing.id }
-      : {
-          ...data,
-          activeUserId: newUserId,
-          users: [
-            ...data.users,
-            {
-              id: newUserId,
-              login: normalized,
-              createdAt: new Date().toISOString(),
+    void (async () => {
+      const rootData = await readAppData().catch(() => defaultRootData)
+      const existing = rootData.users.find((user) => user.login === normalized)
+      const newUserId = createId('user')
+      const nextRootData = existing
+        ? {
+            ...rootData,
+            activeUserId: existing.id,
+          }
+        : {
+            ...rootData,
+            activeUserId: newUserId,
+            users: [
+              ...rootData.users,
+              {
+                id: newUserId,
+                login: normalized,
+                createdAt: new Date().toISOString(),
+              },
+            ],
+            userDataById: {
+              ...rootData.userDataById,
+              [newUserId]: defaultUserScopedData,
             },
-          ],
-        }
+          }
 
-    set({ data: nextData })
-    void persistData(nextData, (error) => set({ error }))
+      const nextData = composeAppData(nextRootData)
+      set({ data: nextData, activeWorkout: nextData.activeWorkout, sessionDraft: [] })
+      await persistRootData(nextRootData, (error) => set({ error }))
+    })()
   },
 
   switchUser: (userId) => {
-    const nextData = { ...get().data, activeUserId: userId }
-    set({ data: nextData })
-    void persistData(nextData, (error) => set({ error }))
+    void (async () => {
+      const rootData = await readAppData().catch(() => defaultRootData)
+      const nextRootData = { ...rootData, activeUserId: userId }
+      const nextData = composeAppData(nextRootData)
+      set({ data: nextData, activeWorkout: nextData.activeWorkout, sessionDraft: [] })
+      await persistRootData(nextRootData, (error) => set({ error }))
+    })()
+  },
+
+  renameActiveUser: async (login) => {
+    const normalized = login.trim().toLowerCase()
+    if (!normalized) {
+      set({ error: 'Введите логин профиля.' })
+      return false
+    }
+
+    const rootData = await readAppData().catch(() => defaultRootData)
+    const activeUserId = rootData.activeUserId
+    if (!activeUserId) {
+      set({ error: 'Сначала войдите в профиль.' })
+      return false
+    }
+
+    const duplicate = rootData.users.find(
+      (user) => user.id !== activeUserId && user.login === normalized,
+    )
+    if (duplicate) {
+      set({ error: 'Профиль с таким логином уже существует.' })
+      return false
+    }
+
+    const nextRootData: RootData = {
+      ...rootData,
+      users: rootData.users.map((user) =>
+        user.id === activeUserId
+          ? {
+              ...user,
+              login: normalized,
+            }
+          : user,
+      ),
+    }
+
+    const nextData = composeAppData(nextRootData)
+    set({ data: nextData, activeWorkout: nextData.activeWorkout, error: '' })
+    await persistRootData(nextRootData, (error) => set({ error }))
+    return true
   },
 
   logout: () => {
-    const nextData = { ...get().data, activeUserId: null }
-    set({ data: nextData })
-    void persistData(nextData, (error) => set({ error }))
+    void (async () => {
+      const rootData = await readAppData().catch(() => defaultRootData)
+      const nextRootData = { ...rootData, activeUserId: null }
+      const nextData = composeAppData(nextRootData)
+      set({ data: nextData, activeWorkout: null, sessionDraft: [] })
+      await persistRootData(nextRootData, (error) => set({ error }))
+    })()
   },
 
   saveEquipment: async (values) => {

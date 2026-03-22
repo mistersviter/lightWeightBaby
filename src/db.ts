@@ -3,17 +3,17 @@ import type {
   AppData,
   EquipmentItem,
   EquipmentRequirementCategory,
+  RootData,
   SessionEntry,
   SessionEquipmentAssignment,
+  UserScopedData,
 } from './types'
 
 const DB_NAME = 'lightWeightBaby'
 const STORE_NAME = 'kv'
 const DATA_KEY = 'app-data'
 
-export const defaultData: AppData = {
-  activeUserId: null,
-  users: [],
+export const defaultUserScopedData: UserScopedData = {
   equipment: [],
   dumbbellAssemblies: [],
   exercises: [],
@@ -23,6 +23,18 @@ export const defaultData: AppData = {
   sessions: [],
   measurements: [],
   sprints: [],
+}
+
+export const defaultRootData: RootData = {
+  activeUserId: null,
+  users: [],
+  userDataById: {},
+}
+
+export const defaultData: AppData = {
+  activeUserId: null,
+  users: [],
+  ...defaultUserScopedData,
 }
 
 type LegacyEquipmentKind = EquipmentItem['kind'] | 'weight' | 'accessory'
@@ -188,12 +200,11 @@ function normalizeActiveWorkout(activeWorkout: ActiveWorkout | null | undefined)
   }
 }
 
-function normalizeData(data: AppData): AppData {
+function normalizeUserScopedData(data: UserScopedData): UserScopedData {
   const assemblyIds = new Set((data.dumbbellAssemblies ?? []).map((item) => item.id))
 
   return {
-    ...data,
-    equipment: data.equipment.map((item) => {
+    equipment: (data.equipment ?? []).map((item) => {
       const legacyKind = item.kind as LegacyEquipmentKind
 
       return {
@@ -240,7 +251,7 @@ function normalizeData(data: AppData): AppData {
       }
     }),
     dumbbellAssemblies: data.dumbbellAssemblies ?? [],
-    exercises: data.exercises.map((exercise) => {
+    exercises: (data.exercises ?? []).map((exercise) => {
       const legacyExercise = exercise as typeof exercise & {
         equipmentIds?: string[]
         equipmentRequirements?: Array<LegacyExerciseRequirement>
@@ -260,14 +271,14 @@ function normalizeData(data: AppData): AppData {
                       ? 'other'
                       : legacyCategory
                   : requirement.itemId
-                    ? inferRequirementCategory(requirement.itemId, data.equipment, assemblyIds)
+                    ? inferRequirementCategory(requirement.itemId, data.equipment ?? [], assemblyIds)
                     : 'other',
                 quantity: Math.max(1, Number(requirement.quantity) || 1),
               }
             })
           : Array.isArray(legacyExercise.equipmentIds)
             ? legacyExercise.equipmentIds.map((itemId) => ({
-                category: inferRequirementCategory(itemId, data.equipment, assemblyIds),
+                category: inferRequirementCategory(itemId, data.equipment ?? [], assemblyIds),
                 quantity: 1,
               }))
             : [],
@@ -299,6 +310,93 @@ function normalizeData(data: AppData): AppData {
         normalizeSessionEntry(entry as LegacySessionEntry),
       ),
     })),
+    measurements: data.measurements ?? [],
+    sprints: data.sprints ?? [],
+  }
+}
+
+function extractUserScopedData(data: AppData): UserScopedData {
+  return {
+    equipment: data.equipment,
+    dumbbellAssemblies: data.dumbbellAssemblies,
+    exercises: data.exercises,
+    workoutTemplates: data.workoutTemplates,
+    scheduledWorkouts: data.scheduledWorkouts,
+    activeWorkout: data.activeWorkout,
+    sessions: data.sessions,
+    measurements: data.measurements,
+    sprints: data.sprints,
+  }
+}
+
+export function composeAppData(rootData: RootData): AppData {
+  const scopedData =
+    (rootData.activeUserId && rootData.userDataById[rootData.activeUserId]) ||
+    defaultUserScopedData
+
+  return {
+    activeUserId: rootData.activeUserId,
+    users: rootData.users,
+    ...scopedData,
+  }
+}
+
+function normalizeRootData(raw: unknown): RootData {
+  if (!raw || typeof raw !== 'object') {
+    return defaultRootData
+  }
+
+  const candidate = raw as Partial<RootData> & Partial<AppData>
+
+  if (candidate.userDataById && typeof candidate.userDataById === 'object') {
+    const userDataById = Object.fromEntries(
+      Object.entries(candidate.userDataById).map(([userId, userData]) => [
+        userId,
+        normalizeUserScopedData(userData as UserScopedData),
+      ]),
+    )
+
+    return {
+      activeUserId: candidate.activeUserId ?? null,
+      users: candidate.users ?? [],
+      userDataById,
+    }
+  }
+
+  const legacyAppData = candidate as AppData
+  const normalizedLegacyAppData: AppData = {
+    activeUserId: legacyAppData.activeUserId ?? null,
+    users: legacyAppData.users ?? [],
+    ...normalizeUserScopedData({
+      equipment: legacyAppData.equipment ?? [],
+      dumbbellAssemblies: legacyAppData.dumbbellAssemblies ?? [],
+      exercises: legacyAppData.exercises ?? [],
+      workoutTemplates: legacyAppData.workoutTemplates ?? [],
+      scheduledWorkouts: legacyAppData.scheduledWorkouts ?? [],
+      activeWorkout: legacyAppData.activeWorkout ?? null,
+      sessions: legacyAppData.sessions ?? [],
+      measurements: legacyAppData.measurements ?? [],
+      sprints: legacyAppData.sprints ?? [],
+    }),
+  }
+
+  const fallbackUserId =
+    normalizedLegacyAppData.activeUserId ??
+    (normalizedLegacyAppData.users.length === 1
+      ? normalizedLegacyAppData.users[0].id
+      : null)
+
+  return {
+    activeUserId: fallbackUserId,
+    users: normalizedLegacyAppData.users,
+    userDataById: fallbackUserId
+      ? {
+          [fallbackUserId]: extractUserScopedData({
+            ...normalizedLegacyAppData,
+            activeUserId: fallbackUserId,
+          }),
+        }
+      : {},
   }
 }
 
@@ -320,20 +418,20 @@ function openDb() {
 export async function readAppData() {
   const db = await openDb()
 
-  return new Promise<AppData>((resolve, reject) => {
+  return new Promise<RootData>((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readonly')
     const store = transaction.objectStore(STORE_NAME)
     const request = store.get(DATA_KEY)
 
     request.onerror = () => reject(request.error)
     request.onsuccess = () => {
-      const result = request.result as AppData | undefined
-      resolve(result ? normalizeData(result) : defaultData)
+      const result = request.result
+      resolve(result ? normalizeRootData(result) : defaultRootData)
     }
   })
 }
 
-export async function writeAppData(data: AppData) {
+export async function writeAppData(data: RootData) {
   const db = await openDb()
 
   return new Promise<void>((resolve, reject) => {

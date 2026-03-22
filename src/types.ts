@@ -206,3 +206,21 @@ export interface AppData {
   measurements: MeasurementRecord[]
   sprints: Sprint[]
 }
+
+export interface UserScopedData {
+  equipment: EquipmentItem[]
+  dumbbellAssemblies: DumbbellAssembly[]
+  exercises: Exercise[]
+  workoutTemplates: WorkoutTemplate[]
+  scheduledWorkouts: ScheduledWorkout[]
+  activeWorkout: ActiveWorkout | null
+  sessions: WorkoutSession[]
+  measurements: MeasurementRecord[]
+  sprints: Sprint[]
+}
+
+export interface RootData {
+  activeUserId: string | null
+  users: UserProfile[]
+  userDataById: Record<string, UserScopedData>
+}
