@@ -1,7 +1,7 @@
 import { Button, Card, Col, Flex, Form, InputNumber, Row, Tag, Typography } from 'antd'
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { EquipmentAssignmentsFields } from './EquipmentAssignmentsFields'
-import type { EquipmentOptions } from './types'
+import type { EquipmentOptions, SetFormValue } from './types'
 
 const { Text } = Typography
 
@@ -16,16 +16,28 @@ export function SessionSetsFields({
   options,
   bodyweightMode,
 }: SessionSetsFieldsProps) {
+  const sets = (Form.useWatch(name) as SetFormValue[] | undefined) ?? []
+
   return (
     <Form.List name={name}>
       {(fields, { add, remove }) => (
         <Flex vertical gap={16}>
           {fields.map((field, index) => (
             <Card key={field.key} size="small">
-              <div className="workout-set-card__badge">
+              <div className="workout-set-card__header">
                 <Tag color="blue" className="workout-set-card__tag">
                   Подход {index + 1}
                 </Tag>
+                <Button
+                  danger
+                  type="text"
+                  icon={<DeleteOutlined />}
+                  aria-label="Удалить подход"
+                  disabled={fields.length === 1}
+                  onClick={() => remove(field.name)}
+                >
+                  Удалить подход
+                </Button>
               </div>
               <Flex vertical gap={12}>
                 <Row gutter={12}>
@@ -48,18 +60,6 @@ export function SessionSetsFields({
                       </Form.Item>
                     </Col>
                   ) : null}
-                  <Col xs={24} md={bodyweightMode ? 8 : 14}>
-                    <Form.Item label=" ">
-                      <Button
-                        danger
-                        type="text"
-                        icon={<DeleteOutlined />}
-                        aria-label="Удалить подход"
-                        disabled={fields.length === 1}
-                        onClick={() => remove(field.name)}
-                      />
-                    </Form.Item>
-                  </Col>
                   <Col span={24}>
                     <Form.Item label="Инвентарь этого подхода">
                       <EquipmentAssignmentsFields
@@ -83,7 +83,19 @@ export function SessionSetsFields({
             <Button
               type="dashed"
               icon={<PlusOutlined />}
-              onClick={() => add({ reps: 10, weightKg: null, equipmentAssignments: [] })}
+              onClick={() => {
+                const previousSet = sets[sets.length - 1]
+
+                add({
+                  reps: previousSet?.reps ?? 10,
+                  weightKg: previousSet?.weightKg ?? null,
+                  equipmentAssignments:
+                    previousSet?.equipmentAssignments?.map((assignment) => ({
+                      itemKey: assignment.itemKey,
+                      quantity: assignment.quantity,
+                    })) ?? [],
+                })
+              }}
             >
               Добавить подход
             </Button>

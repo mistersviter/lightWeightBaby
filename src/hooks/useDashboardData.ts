@@ -1,7 +1,44 @@
 import { useMemo } from 'react'
 import { today } from '../constants'
 import { useAppStore } from '../store/appStore'
+import type { EquipmentItem } from '../types'
 import { addDays, startOfDay, toDateInput } from '../utils'
+
+function isAssignableEquipment(item: EquipmentItem) {
+  return item.kind !== 'plate' && item.kind !== 'handle' && item.kind !== 'lock'
+}
+
+function isSupportEquipment(item: EquipmentItem) {
+  return (
+    item.kind === 'bench' ||
+    item.kind === 'pullup_bar' ||
+    item.kind === 'dip_bars' ||
+    item.kind === 'rack' ||
+    item.kind === 'accessory_other'
+  )
+}
+
+function isLoadEquipment(item: EquipmentItem) {
+  return (
+    item.kind === 'barbell_bar' ||
+    item.kind === 'kettlebell' ||
+    item.kind === 'machine' ||
+    item.kind === 'cable_station' ||
+    item.kind === 'band'
+  )
+}
+
+function formatAssignableEquipmentLabel(item: EquipmentItem) {
+  if (
+    (item.kind === 'kettlebell' || item.kind === 'barbell_bar') &&
+    item.weightKg !== null &&
+    item.weightKg !== undefined
+  ) {
+    return `${item.name} · ${item.weightKg} кг`
+  }
+
+  return item.name
+}
 
 export function useDashboardData() {
   const data = useAppStore((state) => state.data)
@@ -88,12 +125,21 @@ export function useDashboardData() {
     [data.dumbbellAssemblies],
   )
 
-  const actualEquipmentOptions = useMemo(
-    () => [
+  const actualEquipmentOptions = useMemo(() => {
+    const assignableEquipment = data.equipment.filter(isAssignableEquipment)
+
+    return [
       {
-        label: 'Инвентарь',
-        options: data.equipment.map((item) => ({
-          label: item.name,
+        label: 'Опорное оборудование',
+        options: assignableEquipment.filter(isSupportEquipment).map((item) => ({
+          label: formatAssignableEquipmentLabel(item),
+          value: `equipment:${item.id}`,
+        })),
+      },
+      {
+        label: 'Нагрузка и тренажеры',
+        options: assignableEquipment.filter(isLoadEquipment).map((item) => ({
+          label: formatAssignableEquipmentLabel(item),
           value: `equipment:${item.id}`,
         })),
       },
@@ -104,9 +150,8 @@ export function useDashboardData() {
           value: `assembly:${assembly.id}`,
         })),
       },
-    ],
-    [data.dumbbellAssemblies, data.equipment],
-  )
+    ].filter((group) => group.options.length > 0)
+  }, [data.dumbbellAssemblies, data.equipment])
 
   const workoutTemplateOptions = useMemo(
     () =>
