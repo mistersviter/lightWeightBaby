@@ -9,38 +9,38 @@ import {
   Select,
   Tag,
   Typography,
-} from 'antd'
-import type { DumbbellBuildResult } from '../../dumbbellBuilder'
-import type { EquipmentItem } from '../../types'
+} from 'antd';
+import type { DumbbellBuildResult } from '../../dumbbellBuilder';
+import type { EquipmentItem } from '../../types';
 
-const { Text, Title } = Typography
+const { Text, Title } = Typography;
 
 type DumbbellBuilderTabProps = {
-  handles: EquipmentItem[]
-  plates: EquipmentItem[]
-  locks: EquipmentItem[]
-  effectiveHandleId: string
-  selectedHandle: EquipmentItem | null
-  selectedLockId: string
-  selectedLock: EquipmentItem | null
-  targetWeightKg: number
-  exactResults: DumbbellBuildResult[]
-  nearestResults: DumbbellBuildResult[]
-  onHandleChange: (handleId: string) => void
-  onLockChange: (lockId: string) => void
-  onTargetWeightChange: (weight: number) => void
-  onSaveBuild: (result: DumbbellBuildResult) => void
-  onGenerateAll: () => void
-}
+  handles: EquipmentItem[];
+  plates: EquipmentItem[];
+  locks: EquipmentItem[];
+  effectiveHandleId: string;
+  selectedHandle: EquipmentItem | null;
+  selectedLockId: string;
+  selectedLock: EquipmentItem | null;
+  targetWeightKg: number;
+  exactResults: DumbbellBuildResult[];
+  nearestResults: DumbbellBuildResult[];
+  onHandleChange: (handleId: string) => void;
+  onLockChange: (lockId: string) => void;
+  onTargetWeightChange: (weight: number) => void;
+  onSaveBuild: (result: DumbbellBuildResult) => void;
+  onGenerateAll: () => void;
+};
 
 function BuildResultCard({
   result,
   exact,
   onSave,
 }: {
-  result: DumbbellBuildResult
-  exact: boolean
-  onSave: (result: DumbbellBuildResult) => void
+  result: DumbbellBuildResult;
+  exact: boolean;
+  onSave: (result: DumbbellBuildResult) => void;
 }) {
   return (
     <Card size="small">
@@ -56,8 +56,14 @@ function BuildResultCard({
           </Text>
         </Flex>
         <Flex gap={8} align="center" wrap="wrap">
-          <Tag color={exact ? 'green' : 'gold'}>{exact ? 'Точно' : 'Близко'}</Tag>
-          <Button size="small" type={exact ? 'primary' : 'default'} onClick={() => onSave(result)}>
+          <Tag color={exact ? 'green' : 'gold'}>
+            {exact ? 'Точно' : 'Близко'}
+          </Tag>
+          <Button
+            size="small"
+            type={exact ? 'primary' : 'default'}
+            onClick={() => onSave(result)}
+          >
             Создать снаряд
           </Button>
         </Flex>
@@ -66,18 +72,19 @@ function BuildResultCard({
       <Flex vertical gap={4} style={{ marginTop: 12 }}>
         {result.lock ? (
           <Text>
-            Замок: 1 шт на сторону ({result.lock.weightKg} кг, {result.lock.thicknessMm} мм)
+            Замок: 1 шт на сторону ({result.lock.weightKg} кг,{' '}
+            {result.lock.thicknessMm} мм)
           </Text>
         ) : null}
         {result.platesPerSide.map((plate) => (
           <Text key={plate.equipmentId}>
-            {plate.name}: {plate.countPerSide} шт на сторону ({plate.weightKg} кг,{' '}
-            {plate.thicknessMm} мм)
+            {plate.name}: {plate.countPerSide} шт на сторону ({plate.weightKg}{' '}
+            кг, {plate.thicknessMm} мм)
           </Text>
         ))}
       </Flex>
     </Card>
-  )
+  );
 }
 
 function BuildResultGroup({
@@ -86,13 +93,13 @@ function BuildResultGroup({
   exact,
   onSaveBuild,
 }: {
-  title: string
-  results: DumbbellBuildResult[]
-  exact: boolean
-  onSaveBuild: (result: DumbbellBuildResult) => void
+  title: string;
+  results: DumbbellBuildResult[];
+  exact: boolean;
+  onSaveBuild: (result: DumbbellBuildResult) => void;
 }) {
   if (results.length === 0) {
-    return null
+    return null;
   }
 
   return (
@@ -109,7 +116,7 @@ function BuildResultGroup({
         ))}
       </Flex>
     </Card>
-  )
+  );
 }
 
 export function DumbbellBuilderTab({
@@ -135,8 +142,8 @@ export function DumbbellBuilderTab({
         <Title level={5}>Подбор конфигурации</Title>
         <Text type="secondary">
           Сборка считается для одной разборной гантели. Приложение учитывает
-          симметричную развесовку, доступное количество блинов, посадочный размер
-          и суммарную толщину блинов на каждой втулке.
+          симметричную развесовку, доступное количество блинов, посадочный
+          размер и суммарную толщину блинов на каждой втулке.
         </Text>
         <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
           <Col xs={24} md={12}>
@@ -185,7 +192,12 @@ export function DumbbellBuilderTab({
           <Col xs={24} md={12}>
             <Flex vertical gap={8}>
               <Text strong>Все возможные конфигурации</Text>
-              <Button block onClick={onGenerateAll} disabled={!selectedHandle || plates.length === 0}>
+              <Button
+                type={'primary'}
+                block
+                onClick={onGenerateAll}
+                disabled={!selectedHandle || plates.length === 0}
+              >
                 Сгенерировать все варианты
               </Button>
             </Flex>
@@ -200,12 +212,16 @@ export function DumbbellBuilderTab({
           <Card size="small" className="entity-item-card">
             <Title level={5}>Ограничения выбранной рукоятки</Title>
             <Flex gap={8} wrap="wrap">
-              <Tag color="blue">Вес рукоятки: {selectedHandle.weightKg ?? 0} кг</Tag>
+              <Tag color="blue">
+                Вес рукоятки: {selectedHandle.weightKg ?? 0} кг
+              </Tag>
               <Tag color="geekblue">
                 Длина втулки: {selectedHandle.sleeveLengthMm ?? 0} мм на сторону
               </Tag>
               {selectedHandle.mountSizeMm ? (
-                <Tag color="purple">Посадка: {selectedHandle.mountSizeMm} мм</Tag>
+                <Tag color="purple">
+                  Посадка: {selectedHandle.mountSizeMm} мм
+                </Tag>
               ) : null}
               {selectedLock ? (
                 <Tag color="gold">
@@ -237,5 +253,5 @@ export function DumbbellBuilderTab({
         </>
       )}
     </Flex>
-  )
+  );
 }
