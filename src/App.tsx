@@ -21,12 +21,16 @@ import { MeasurementsSection } from './sections/MeasurementsSection'
 import { SprintsSection } from './sections/SprintsSection'
 import { WorkoutsSection } from './sections/WorkoutsSection'
 import { ActiveWorkoutScreen } from './sections/workouts/ActiveWorkoutScreen'
+import { ViewSessionDetailsModal } from './sections/workouts/ViewSessionDetailsModal'
+import { WorkoutEntrySummary } from './sections/workouts/WorkoutEntrySummary'
 import { useAppStore } from './store/appStore'
+import type { SessionEntry, WorkoutSession } from './types'
 
 const { Content } = Layout
 
 function App() {
   const [login, setLogin] = useState('')
+  const [viewingSession, setViewingSession] = useState<WorkoutSession | null>(null)
   const load = useAppStore((state) => state.load)
   const isReady = useAppStore((state) => state.isReady)
   const error = useAppStore((state) => state.error)
@@ -53,6 +57,43 @@ function App() {
     todaySessions,
     todayScheduledWorkouts,
   } = useDashboardData()
+
+  const exerciseMap = useMemo(
+    () => new Map(data.exercises.map((exercise) => [exercise.id, exercise])),
+    [data.exercises],
+  )
+
+  const assignmentLabelMap = useMemo(() => {
+    const map = new Map<string, string>()
+    data.equipment.forEach((item) => map.set(`equipment:${item.id}`, item.name))
+    data.dumbbellAssemblies.forEach((assembly) => {
+      map.set(`assembly:${assembly.id}`, assembly.name)
+    })
+    return map
+  }, [data.dumbbellAssemblies, data.equipment])
+
+  const assignmentWeightMap = useMemo(() => {
+    const map = new Map<string, number | null>()
+    data.equipment.forEach((item) => map.set(`equipment:${item.id}`, item.weightKg))
+    data.dumbbellAssemblies.forEach((assembly) =>
+      map.set(`assembly:${assembly.id}`, assembly.totalWeightKg),
+    )
+    return map
+  }, [data.dumbbellAssemblies, data.equipment])
+
+  const renderEntries = (entries: SessionEntry[]) => (
+    <div className="workout-session-summary">
+      {entries.map((entry) => (
+        <WorkoutEntrySummary
+          key={entry.id}
+          entry={entry}
+          exercise={exerciseMap.get(entry.exerciseId)}
+          assignmentLabelMap={assignmentLabelMap}
+          assignmentWeightMap={assignmentWeightMap}
+        />
+      ))}
+    </div>
+  )
 
   useEffect(() => {
     void load()
@@ -126,7 +167,7 @@ function App() {
         ),
         children: (
           <Card className="app-section-card">
-            <CalendarSection />
+            <CalendarSection onViewSession={setViewingSession} />
           </Card>
         ),
       },
@@ -202,6 +243,7 @@ function App() {
                   onCancelScheduledWorkout={(scheduledWorkoutId) =>
                     void deleteScheduledWorkout(scheduledWorkoutId)
                   }
+                  onViewSession={setViewingSession}
                 />
 
                 <StatsOverview
@@ -216,6 +258,13 @@ function App() {
                 <Tabs items={tabItems} />
               </>
             )}
+
+            <ViewSessionDetailsModal
+              open={Boolean(viewingSession)}
+              session={viewingSession}
+              renderEntries={renderEntries}
+              onClose={() => setViewingSession(null)}
+            />
           </>
         )}
       </Content>

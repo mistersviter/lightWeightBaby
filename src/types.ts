@@ -148,6 +148,9 @@ export interface WorkoutSession {
   title: string
   notes: string
   entries: SessionEntry[]
+  plannedEntries: SessionEntry[] | null
+  sourceType: 'manual' | 'template' | 'scheduled'
+  sourceTemplateId: string | null
   createdAt: string
 }
 

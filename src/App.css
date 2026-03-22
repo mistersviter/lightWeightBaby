@@ -73,6 +73,24 @@
   background: #fafcff;
 }
 
+.workout-entry-summary--planned {
+  border-color: #d6e4ff;
+  background: #f5f9ff;
+}
+
+.workout-entry-summary--completed {
+  border-color: #d9f7be;
+  background: #f6ffed;
+}
+
+.calendar-entry-icon--planned {
+  color: #1677ff;
+}
+
+.calendar-entry-icon--completed {
+  color: #52c41a;
+}
+
 .workout-builder-card .ant-card-body {
   padding: 18px;
 }
@@ -176,6 +194,30 @@
 
 .calendar-day-card .ant-card-head {
   border-bottom-color: #e8eef6;
+}
+
+.calendar-day-col {
+  display: flex;
+}
+
+.calendar-day-card {
+  height: 100%;
+  width: 100%;
+}
+
+.calendar-day-card .ant-card-body {
+  height: calc(100% - 58px);
+}
+
+.calendar-day-card__content {
+  height: 100%;
+  min-height: 320px;
+}
+
+.calendar-day-card--fixed .calendar-day-card__content {
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .calendar-day-card__title {
@@ -315,6 +357,17 @@
     flex-direction: column;
     gap: 6px;
     min-height: unset;
+  }
+
+  .calendar-day-card .ant-card-body {
+    height: auto;
+  }
+
+  .calendar-day-card--fixed .calendar-day-card__content {
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
   }
 
   .bulk-build-card__detail-row {

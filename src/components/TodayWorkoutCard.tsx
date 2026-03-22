@@ -1,3 +1,4 @@
+import { EyeOutlined } from '@ant-design/icons'
 import { Alert, Button, Card, Flex, Space, Tag, Typography } from 'antd'
 import type { ScheduledWorkout, WorkoutSession } from '../types'
 
@@ -9,6 +10,7 @@ type TodayWorkoutCardProps = {
   onStartScheduledWorkout: (scheduledWorkoutId: string) => void
   onCompleteScheduledWorkout: (scheduledWorkoutId: string) => void
   onCancelScheduledWorkout: (scheduledWorkoutId: string) => void
+  onViewSession: (session: WorkoutSession) => void
 }
 
 export function TodayWorkoutCard({
@@ -17,6 +19,7 @@ export function TodayWorkoutCard({
   onStartScheduledWorkout,
   onCompleteScheduledWorkout,
   onCancelScheduledWorkout,
+  onViewSession,
 }: TodayWorkoutCardProps) {
   if (todaySessions.length === 0 && todayScheduledWorkouts.length === 0) {
     return null
@@ -100,7 +103,16 @@ export function TodayWorkoutCard({
                     wrap="wrap"
                   >
                     <Text strong>{session.title}</Text>
-                    <Text type="secondary">{session.entries.length} упражнений</Text>
+                    <Flex gap={8} align="center" wrap="wrap">
+                      <Text type="secondary">{session.entries.length} упражнений</Text>
+                      <Button
+                        size="small"
+                        icon={<EyeOutlined />}
+                        onClick={() => onViewSession(session)}
+                      >
+                        Подробнее
+                      </Button>
+                    </Flex>
                   </Flex>
                 ))}
               </Flex>

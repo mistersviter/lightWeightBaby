@@ -1,4 +1,4 @@
-import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, EyeOutlined } from '@ant-design/icons'
 import { Button, Card, Empty, Flex, Popconfirm, Typography } from 'antd'
 import type { ReactNode } from 'react'
 import type { WorkoutSession } from '../../types'
@@ -9,6 +9,7 @@ const { Text } = Typography
 type HistoryTabProps = {
   sessions: WorkoutSession[]
   renderEntries: (entries: WorkoutSession['entries']) => ReactNode
+  onView: (session: WorkoutSession) => void
   onEdit: (session: WorkoutSession) => void
   onDelete: (sessionId: string) => void
 }
@@ -16,6 +17,7 @@ type HistoryTabProps = {
 export function HistoryTab({
   sessions,
   renderEntries,
+  onView,
   onEdit,
   onDelete,
 }: HistoryTabProps) {
@@ -40,6 +42,12 @@ export function HistoryTab({
               </Text>
             </div>
             <Flex gap={4}>
+              <Button
+                type="text"
+                icon={<EyeOutlined />}
+                aria-label="Посмотреть детали тренировки"
+                onClick={() => onView(session)}
+              />
               <Button
                 type="text"
                 icon={<EditOutlined />}

@@ -280,6 +280,16 @@ function normalizeData(data: AppData): AppData {
     activeWorkout: normalizeActiveWorkout(data.activeWorkout),
     sessions: (data.sessions ?? []).map((session) => ({
       ...session,
+      plannedEntries: Array.isArray(session.plannedEntries)
+        ? session.plannedEntries.map((entry) =>
+            normalizeSessionEntry(entry as LegacySessionEntry),
+          )
+        : null,
+      sourceType:
+        session.sourceType === 'template' || session.sourceType === 'scheduled'
+          ? session.sourceType
+          : ('manual' as const),
+      sourceTemplateId: session.sourceTemplateId ?? null,
       entries: session.entries.map((entry) =>
         normalizeSessionEntry(entry as LegacySessionEntry),
       ),

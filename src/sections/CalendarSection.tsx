@@ -1,3 +1,4 @@
+import { CheckCircleOutlined, ClockCircleOutlined, EyeOutlined } from '@ant-design/icons'
 import { useMemo, useState } from 'react'
 import {
   Button,
@@ -16,6 +17,7 @@ import dayjs from 'dayjs'
 import { calendarModeOptions } from '../constants'
 import { useDashboardData } from '../hooks/useDashboardData'
 import { useAppStore } from '../store/appStore'
+import type { WorkoutSession } from '../types'
 import {
   formatShortDate,
   formatWeekday,
@@ -29,7 +31,11 @@ import {
 
 const { Text, Title } = Typography
 
-export function CalendarSection() {
+type CalendarSectionProps = {
+  onViewSession: (session: WorkoutSession) => void
+}
+
+export function CalendarSection({ onViewSession }: CalendarSectionProps) {
   const [templateByDay, setTemplateByDay] = useState<Record<string, string>>({})
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
   const [selectedDate, setSelectedDate] = useState(toDateInput(new Date()))
@@ -143,6 +149,7 @@ export function CalendarSection() {
 
           return (
             <Col
+              className="calendar-day-col"
               xs={24}
               sm={12}
               md={calendarMode === 'day' ? 24 : 8}
@@ -151,7 +158,7 @@ export function CalendarSection() {
             >
               <Card
                 size="small"
-                className={`calendar-day-card${isToday ? ' calendar-day-card--today' : ''}${
+                className={`calendar-day-card${calendarMode !== 'day' ? ' calendar-day-card--fixed' : ''}${isToday ? ' calendar-day-card--today' : ''}${
                   isWeekend ? ' calendar-day-card--weekend' : ''
                 }`}
                 title={
@@ -168,7 +175,7 @@ export function CalendarSection() {
                 }
                 extra={isToday ? <Tag color="blue">Сегодня</Tag> : null}
               >
-                <Flex vertical gap={10}>
+                <Flex vertical gap={10} className="calendar-day-card__content">
                   <Text type="secondary">
                     Выполненных тренировок: {daySessions.length}
                   </Text>
@@ -186,8 +193,14 @@ export function CalendarSection() {
                   {dayPlannedWorkouts.length > 0 ? (
                     <div className="workout-session-summary">
                       {dayPlannedWorkouts.map((item) => (
-                        <div key={item.id} className="workout-entry-summary">
-                          <Text strong>{item.templateName}</Text>
+                        <div
+                          key={item.id}
+                          className="workout-entry-summary workout-entry-summary--planned"
+                        >
+                          <Flex align="center" gap={8}>
+                            <ClockCircleOutlined className="calendar-entry-icon calendar-entry-icon--planned" />
+                            <Text strong>{item.templateName}</Text>
+                          </Flex>
                           <Flex gap={8} wrap="wrap">
                             <Button
                               size="small"
@@ -211,6 +224,38 @@ export function CalendarSection() {
                             </Button>
                           </Flex>
                         </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {daySessions.length > 0 ? (
+                    <div className="workout-session-summary">
+                      {daySessions.map((session) => (
+                        <Flex
+                          key={session.id}
+                          align="center"
+                          justify="space-between"
+                          gap={8}
+                          wrap="wrap"
+                          className="workout-entry-summary workout-entry-summary--completed"
+                        >
+                          <Flex vertical gap={2}>
+                            <Flex align="center" gap={8}>
+                              <CheckCircleOutlined className="calendar-entry-icon calendar-entry-icon--completed" />
+                              <Text strong>{session.title}</Text>
+                            </Flex>
+                            <Text type="secondary">
+                              {session.entries.length} упражнений
+                            </Text>
+                          </Flex>
+                          <Button
+                            size="small"
+                            icon={<EyeOutlined />}
+                            onClick={() => onViewSession(session)}
+                          >
+                            Подробнее
+                          </Button>
+                        </Flex>
                       ))}
                     </div>
                   ) : null}

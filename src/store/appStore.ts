@@ -288,6 +288,26 @@ function toSessionEntriesFromActiveWorkout(activeWorkout: ActiveWorkout): Sessio
     .filter((entry): entry is SessionEntry => Boolean(entry))
 }
 
+function toPlannedSessionEntriesFromActiveWorkout(
+  activeWorkout: ActiveWorkout,
+): SessionEntry[] {
+  return activeWorkout.entries.map((entry) => ({
+    id: createId('planned-entry'),
+    exerciseId: entry.exerciseId,
+    sets: entry.sets.map((set) => ({
+      reps: Math.max(0, Number(set.plannedReps) || 0),
+      weightKg:
+        set.plannedWeightKg === undefined || set.plannedWeightKg === null
+          ? null
+          : Math.max(0, Number(set.plannedWeightKg) || 0),
+      equipmentAssignments: normalizeEquipmentAssignments(
+        set.plannedEquipmentAssignments,
+      ),
+    })),
+    notes: entry.notes?.trim() || '',
+  }))
+}
+
 export const useAppStore = create<AppStore>((set, get) => ({
   data: defaultData,
   isReady: false,
@@ -579,8 +599,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
       date: values.date,
       title: values.title.trim() || 'Тренировка',
       notes: values.notes?.trim() || '',
-      entries: sessionDraft,
-      createdAt: new Date().toISOString(),
+        entries: sessionDraft,
+        plannedEntries: normalizeSessionEntries(sessionDraft),
+        sourceType: 'manual',
+        sourceTemplateId: null,
+        createdAt: new Date().toISOString(),
     }
 
     const nextData = {
@@ -603,8 +626,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
               date: values.date,
               title: values.title.trim() || 'Тренировка',
               notes: values.notes?.trim() || '',
-              entries: normalizeSessionEntries(values.entries),
-            }
+                entries: normalizeSessionEntries(values.entries),
+                plannedEntries:
+                  session.plannedEntries ?? normalizeSessionEntries(values.entries),
+              }
           : session,
       ),
     }
@@ -736,8 +761,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
       date: scheduled.date,
       title: template.name,
       notes: template.notes,
-      entries: normalizeSessionEntries(template.entries),
-      createdAt: new Date().toISOString(),
+        entries: normalizeSessionEntries(template.entries),
+        plannedEntries: normalizeSessionEntries(template.entries),
+        sourceType: 'scheduled',
+        sourceTemplateId: template.id,
+        createdAt: new Date().toISOString(),
     }
 
     const nextData = {
@@ -859,8 +887,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
       date: activeWorkout.date,
       title: activeWorkout.title.trim() || 'Тренировка',
       notes: activeWorkout.notes?.trim() || '',
-      entries: toSessionEntriesFromActiveWorkout(activeWorkout),
-      createdAt: new Date().toISOString(),
+        entries: toSessionEntriesFromActiveWorkout(activeWorkout),
+        plannedEntries: toPlannedSessionEntriesFromActiveWorkout(activeWorkout),
+        sourceType: activeWorkout.sourceType,
+        sourceTemplateId: activeWorkout.sourceTemplateId,
+        createdAt: new Date().toISOString(),
     }
 
     const nextData = {

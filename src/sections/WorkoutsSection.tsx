@@ -12,6 +12,7 @@ import { HistoryTab } from './workouts/HistoryTab'
 import { LogWorkoutModal } from './workouts/LogWorkoutModal'
 import { ScheduleTemplateModal } from './workouts/ScheduleTemplateModal'
 import { TemplatesTab } from './workouts/TemplatesTab'
+import { ViewSessionDetailsModal } from './workouts/ViewSessionDetailsModal'
 import type {
   EditSessionFormValues,
   EditTemplateFormValues,
@@ -36,6 +37,7 @@ export function WorkoutsSection() {
   const [editingSession, setEditingSession] = useState<WorkoutSession | null>(null)
   const [editingTemplate, setEditingTemplate] = useState<WorkoutTemplate | null>(null)
   const [schedulingTemplate, setSchedulingTemplate] = useState<WorkoutTemplate | null>(null)
+  const [viewingSession, setViewingSession] = useState<WorkoutSession | null>(null)
   const [logWorkoutOpen, setLogWorkoutOpen] = useState(false)
 
   const data = useAppStore((state) => state.data)
@@ -264,6 +266,7 @@ export function WorkoutsSection() {
               <HistoryTab
                 sessions={recentSessions}
                 renderEntries={renderEntries}
+                onView={setViewingSession}
                 onEdit={openEditSessionModal}
                 onDelete={(sessionId) => void deleteSession(sessionId)}
               />
@@ -294,6 +297,13 @@ export function WorkoutsSection() {
           setEditingSession(null)
           editForm.resetFields()
         }}
+      />
+
+      <ViewSessionDetailsModal
+        open={Boolean(viewingSession)}
+        session={viewingSession}
+        renderEntries={renderEntries}
+        onClose={() => setViewingSession(null)}
       />
 
       <EditTemplateModal
