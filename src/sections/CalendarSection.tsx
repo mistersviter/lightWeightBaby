@@ -156,7 +156,7 @@ export function CalendarSection() {
                 }`}
                 title={
                   <div className="calendar-day-card__title">
-                    <Tag bordered={false} className="calendar-day-card__weekday-tag">
+                    <Tag variant="filled" className="calendar-day-card__weekday-tag">
                       {formatWeekday(date)}
                     </Tag>
                     <div className="calendar-day-card__date-block">
