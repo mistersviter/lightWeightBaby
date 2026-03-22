@@ -65,7 +65,7 @@ export function EditSessionModal({
         <Form.List name="entries">
           {(fields, { add, remove }) => (
             <Flex vertical gap={12}>
-              {fields.map((field, index) => {
+              {fields.map((field) => {
                 const exerciseId = form.getFieldValue([
                   'entries',
                   field.name,
@@ -76,7 +76,6 @@ export function EditSessionModal({
                   <EntryEditorCard
                     key={field.key}
                     fieldName={field.name}
-                    labelPrefix={index === 0}
                     exerciseOptions={exerciseOptions}
                     exercise={exercise}
                     options={actualEquipmentOptions}
