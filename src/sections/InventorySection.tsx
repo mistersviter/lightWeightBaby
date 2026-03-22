@@ -1,32 +1,122 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Form, Modal, Tabs } from 'antd'
+import {
+  Alert,
+  Card,
+  Empty,
+  Flex,
+  Form,
+  Modal,
+  Tag,
+  Tabs,
+  Typography,
+} from 'antd'
 import { defaultEquipmentFormValues } from '../constants'
 import {
+  buildAllDumbbellConfigurations,
   buildDumbbellConfigurations,
   type DumbbellBuildResult,
 } from '../dumbbellBuilder'
 import { useAppStore } from '../store/appStore'
-import type { EquipmentItem } from '../types'
+import type { DumbbellAssembly, EquipmentItem } from '../types'
 import { AssembliesTab } from './inventory/AssembliesTab'
 import { ComponentsCatalogTab } from './inventory/ComponentsCatalogTab'
 import { DumbbellBuilderTab } from './inventory/DumbbellBuilderTab'
 import { EquipmentFields } from './inventory/EquipmentFields'
 import type { EquipmentFormValues } from './inventory/types'
 
+const { Text } = Typography
+
+function buildSignatureFromResult(
+  handleId: string,
+  lockId: string | null,
+  result: DumbbellBuildResult,
+) {
+  return JSON.stringify({
+    handleId,
+    lockId,
+    totalWeightKg: result.totalWeightKg,
+    sideThicknessMm: result.sideThicknessMm,
+    platesPerSide: result.platesPerSide
+      .map((plate) => ({
+        equipmentId: plate.equipmentId,
+        countPerSide: plate.countPerSide,
+      }))
+      .sort((left, right) => left.equipmentId.localeCompare(right.equipmentId)),
+  })
+}
+
+function buildSignatureFromAssembly(assembly: DumbbellAssembly) {
+  return JSON.stringify({
+    handleId: assembly.handleId,
+    lockId: assembly.lockId,
+    totalWeightKg: assembly.totalWeightKg,
+    sideThicknessMm: assembly.sideThicknessMm,
+    platesPerSide: assembly.platesPerSide
+      .map((plate) => ({
+        equipmentId: plate.equipmentId,
+        countPerSide: plate.countPerSide,
+      }))
+      .sort((left, right) => left.equipmentId.localeCompare(right.equipmentId)),
+  })
+}
+
+function formatBuildComposition(result: DumbbellBuildResult) {
+  const parts: string[] = []
+
+  if (result.lock) {
+    parts.push(`замок ${result.lock.name}`)
+  }
+
+  for (const plate of result.platesPerSide) {
+    parts.push(`${plate.name} × ${plate.countPerSide} на сторону`)
+  }
+
+  return parts.length > 0 ? parts.join(', ') : 'Без блинов, только рукоятка'
+}
+
+function formatPlateLine(result: DumbbellBuildResult) {
+  if (result.platesPerSide.length === 0) {
+    return 'Без блинов'
+  }
+
+  return result.platesPerSide
+    .map((plate) => `${plate.name} × ${plate.countPerSide}/сторона`)
+    .join(' • ')
+}
+
+function mapEquipmentToFormValues(item: EquipmentItem): EquipmentFormValues {
+  return {
+    name: item.name,
+    kind: item.kind,
+    unit: item.unit,
+    increment: item.increment,
+    quantity: item.quantity,
+    weightKg: item.weightKg,
+    thicknessMm: item.thicknessMm,
+    diameterMm: item.diameterMm,
+    sleeveLengthMm: item.sleeveLengthMm,
+    gripLengthMm: item.gripLengthMm,
+    mountSizeMm: item.mountSizeMm,
+    notes: item.notes,
+  }
+}
+
 export function InventorySection() {
   const [form] = Form.useForm<EquipmentFormValues>()
   const [editForm] = Form.useForm<EquipmentFormValues>()
-  const [editingItem, setEditingItem] = useState<EquipmentItem | null>(null)
-  const [selectedHandleId, setSelectedHandleId] = useState('')
-  const [selectedLockId, setSelectedLockId] = useState('')
-  const [targetWeightKg, setTargetWeightKg] = useState(10)
-
   const equipment = useAppStore((state) => state.data.equipment)
   const dumbbellAssemblies = useAppStore((state) => state.data.dumbbellAssemblies)
   const saveEquipment = useAppStore((state) => state.saveEquipment)
   const updateEquipment = useAppStore((state) => state.updateEquipment)
   const deleteEquipment = useAppStore((state) => state.deleteEquipment)
   const saveDumbbellAssembly = useAppStore((state) => state.saveDumbbellAssembly)
+
+  const [editingItem, setEditingItem] = useState<EquipmentItem | null>(null)
+  const [selectedHandleId, setSelectedHandleId] = useState('')
+  const [selectedLockId, setSelectedLockId] = useState('')
+  const [targetWeightKg, setTargetWeightKg] = useState(12.5)
+  const [bulkBuildOpen, setBulkBuildOpen] = useState(false)
+  const [isSavingAllBuilds, setIsSavingAllBuilds] = useState(false)
 
   useEffect(() => {
     form.setFieldsValue(defaultEquipmentFormValues)
@@ -45,13 +135,26 @@ export function InventorySection() {
     [equipment],
   )
 
+  useEffect(() => {
+    if (selectedHandleId && !handles.some((item) => item.id === selectedHandleId)) {
+      setSelectedHandleId('')
+    }
+  }, [handles, selectedHandleId])
+
+  useEffect(() => {
+    if (selectedLockId && !locks.some((item) => item.id === selectedLockId)) {
+      setSelectedLockId('')
+    }
+  }, [locks, selectedLockId])
+
   const effectiveHandleId = selectedHandleId || handles[0]?.id || ''
   const selectedHandle =
     handles.find((item) => item.id === effectiveHandleId) ?? null
-  const selectedLock = locks.find((item) => item.id === selectedLockId) ?? null
+  const selectedLock =
+    locks.find((item) => item.id === selectedLockId) ?? null
 
   const buildResults = useMemo(() => {
-    if (!selectedHandle || targetWeightKg <= 0) {
+    if (!selectedHandle || plates.length === 0) {
       return []
     }
 
@@ -63,12 +166,68 @@ export function InventorySection() {
     })
   }, [plates, selectedHandle, selectedLock, targetWeightKg])
 
-  const exactResults = buildResults.filter(
-    (result) => Math.abs(result.deltaKg) < 0.01,
+  const exactResults = useMemo(
+    () => buildResults.filter((result) => result.deltaKg === 0),
+    [buildResults],
   )
-  const nearestResults = buildResults.filter(
-    (result) => Math.abs(result.deltaKg) >= 0.01,
+
+  const nearestResults = useMemo(
+    () => buildResults.filter((result) => result.deltaKg !== 0),
+    [buildResults],
   )
+
+  const allBuildResults = useMemo(() => {
+    if (!selectedHandle || plates.length === 0) {
+      return []
+    }
+
+    return buildAllDumbbellConfigurations({
+      handle: selectedHandle,
+      plates,
+      lock: selectedLock,
+    })
+  }, [plates, selectedHandle, selectedLock])
+
+  const existingAssemblySignatures = useMemo(
+    () =>
+      new Set(
+        dumbbellAssemblies.map((assembly) => buildSignatureFromAssembly(assembly)),
+      ),
+    [dumbbellAssemblies],
+  )
+
+  const pendingAllBuildResults = useMemo(() => {
+    if (!selectedHandle) {
+      return []
+    }
+
+    return allBuildResults.filter(
+      (result) =>
+        !existingAssemblySignatures.has(
+          buildSignatureFromResult(selectedHandle.id, selectedLock?.id ?? null, result),
+        ),
+    )
+  }, [allBuildResults, existingAssemblySignatures, selectedHandle, selectedLock])
+
+  const createAssemblyPayload = (result: DumbbellBuildResult) => {
+    if (!selectedHandle) {
+      return null
+    }
+
+    return {
+      name: `Гантель ${result.totalWeightKg} кг`,
+      handleId: selectedHandle.id,
+      handleName: selectedHandle.name,
+      handleWeightKg: selectedHandle.weightKg ?? 0,
+      lockId: selectedLock?.id ?? null,
+      lockName: selectedLock?.name ?? null,
+      lockWeightKg: selectedLock?.weightKg ?? 0,
+      totalWeightKg: result.totalWeightKg,
+      sideThicknessMm: result.sideThicknessMm,
+      mountSizeMm: selectedHandle.mountSizeMm ?? null,
+      platesPerSide: result.platesPerSide,
+    }
+  }
 
   const handleCreateEquipment = async (values: EquipmentFormValues) => {
     await saveEquipment(values)
@@ -76,22 +235,9 @@ export function InventorySection() {
     form.setFieldsValue(defaultEquipmentFormValues)
   }
 
-  const openEditModal = (item: EquipmentItem) => {
+  const handleOpenEdit = (item: EquipmentItem) => {
     setEditingItem(item)
-    editForm.setFieldsValue({
-      name: item.name,
-      kind: item.kind,
-      unit: item.unit,
-      increment: item.increment,
-      quantity: item.quantity,
-      weightKg: item.weightKg,
-      thicknessMm: item.thicknessMm,
-      diameterMm: item.diameterMm,
-      sleeveLengthMm: item.sleeveLengthMm,
-      gripLengthMm: item.gripLengthMm,
-      mountSizeMm: item.mountSizeMm,
-      notes: item.notes,
-    })
+    editForm.setFieldsValue(mapEquipmentToFormValues(item))
   }
 
   const handleEdit = async () => {
@@ -106,30 +252,39 @@ export function InventorySection() {
   }
 
   const handleSaveBuild = async (result: DumbbellBuildResult) => {
-    if (!selectedHandle) {
+    const payload = createAssemblyPayload(result)
+    if (!payload) {
       return
     }
 
-    await saveDumbbellAssembly({
-      name: `Гантель ${result.totalWeightKg} кг`,
-      handleId: selectedHandle.id,
-      handleName: selectedHandle.name,
-      handleWeightKg: selectedHandle.weightKg ?? 0,
-      lockId: result.lock?.equipmentId ?? null,
-      lockName: result.lock?.name ?? null,
-      lockWeightKg: result.lock?.weightKg ?? 0,
-      totalWeightKg: result.totalWeightKg,
-      sideThicknessMm: result.sideThicknessMm,
-      mountSizeMm: selectedHandle.mountSizeMm,
-      platesPerSide: result.platesPerSide,
-    })
+    await saveDumbbellAssembly(payload)
   }
 
-  const handleHandleChange = (handleId: string) => {
-    setSelectedHandleId(handleId)
-    const nextHandle = handles.find((item) => item.id === handleId)
-    if (nextHandle?.weightKg) {
-      setTargetWeightKg(nextHandle.weightKg)
+  const handleGenerateAll = () => {
+    if (!selectedHandle || plates.length === 0) {
+      return
+    }
+
+    setBulkBuildOpen(true)
+  }
+
+  const handleSaveAllBuilds = async () => {
+    if (!selectedHandle || pendingAllBuildResults.length === 0) {
+      setBulkBuildOpen(false)
+      return
+    }
+
+    setIsSavingAllBuilds(true)
+    try {
+      for (const result of pendingAllBuildResults) {
+        const payload = createAssemblyPayload(result)
+        if (payload) {
+          await saveDumbbellAssembly(payload)
+        }
+      }
+      setBulkBuildOpen(false)
+    } finally {
+      setIsSavingAllBuilds(false)
     }
   }
 
@@ -139,13 +294,13 @@ export function InventorySection() {
         items={[
           {
             key: 'catalog',
-            label: 'Компоненты',
+            label: 'Каталог компонентов',
             children: (
               <ComponentsCatalogTab
                 form={form}
                 equipment={equipment}
                 onSubmit={handleCreateEquipment}
-                onEdit={openEditModal}
+                onEdit={handleOpenEdit}
                 onDelete={(equipmentId) => void deleteEquipment(equipmentId)}
               />
             ),
@@ -165,10 +320,11 @@ export function InventorySection() {
                 targetWeightKg={targetWeightKg}
                 exactResults={exactResults}
                 nearestResults={nearestResults}
-                onHandleChange={handleHandleChange}
+                onHandleChange={setSelectedHandleId}
                 onLockChange={setSelectedLockId}
                 onTargetWeightChange={setTargetWeightKg}
                 onSaveBuild={(result) => void handleSaveBuild(result)}
+                onGenerateAll={handleGenerateAll}
               />
             ),
           },
@@ -181,15 +337,142 @@ export function InventorySection() {
       />
 
       <Modal
-        title="Редактировать компонент"
+        width={960}
+        title="Сгенерированные варианты гантели"
+        open={bulkBuildOpen}
+        confirmLoading={isSavingAllBuilds}
+        okText={
+          pendingAllBuildResults.length > 0
+            ? `Создать все (${pendingAllBuildResults.length})`
+            : 'Закрыть'
+        }
+        cancelText="Отмена"
+        onOk={() => void handleSaveAllBuilds()}
+        onCancel={() => {
+          if (!isSavingAllBuilds) {
+            setBulkBuildOpen(false)
+          }
+        }}
+      >
+        <Flex vertical gap={16}>
+          {selectedHandle ? (
+            <Alert
+              type="info"
+              showIcon
+              message={`Рукоятка: ${selectedHandle.name}`}
+              description={
+                selectedLock
+                  ? `С замком ${selectedLock.name}. Показаны все допустимые конфигурации, которые помещаются на втулку и подходят по посадке.`
+                  : 'Показаны все допустимые конфигурации без учета целевого веса.'
+              }
+            />
+          ) : null}
+
+          {allBuildResults.length === 0 ? (
+            <Empty description="Для выбранной рукоятки не нашлось ни одной допустимой сборки." />
+          ) : (
+            <>
+              {pendingAllBuildResults.length !== allBuildResults.length ? (
+                <Text type="secondary">
+                  Новых вариантов для создания: {pendingAllBuildResults.length}. Уже сохранено:{' '}
+                  {allBuildResults.length - pendingAllBuildResults.length}.
+                </Text>
+              ) : null}
+
+              <div style={{ maxHeight: 520, overflowY: 'auto', paddingRight: 4 }}>
+                <Flex vertical gap={12}>
+                  {allBuildResults.map((result, index) => {
+                    const isAlreadySaved =
+                      !selectedHandle ||
+                      existingAssemblySignatures.has(
+                        buildSignatureFromResult(
+                          selectedHandle.id,
+                          selectedLock?.id ?? null,
+                          result,
+                        ),
+                      )
+
+                    return (
+                      <Card
+                        key={`bulk-build-${index}`}
+                        size="small"
+                        className="entity-item-card bulk-build-card"
+                      >
+                        <Flex vertical gap={12}>
+                          <div className="bulk-build-card__header">
+                            <div>
+                              <div className="bulk-build-card__weight">
+                                {result.totalWeightKg} кг
+                              </div>
+                              <Text type="secondary">{formatPlateLine(result)}</Text>
+                            </div>
+                            <Tag color={isAlreadySaved ? 'default' : 'green'}>
+                              {isAlreadySaved ? 'Уже сохранено' : 'Будет создано'}
+                            </Tag>
+                          </div>
+
+                          <div className="bulk-build-card__metrics">
+                            <div className="bulk-build-card__metric">
+                              <span className="bulk-build-card__metric-label">Толщина</span>
+                              <span>{result.sideThicknessMm} мм на сторону</span>
+                            </div>
+                            <div className="bulk-build-card__metric">
+                              <span className="bulk-build-card__metric-label">Состав</span>
+                              <span>{formatBuildComposition(result)}</span>
+                            </div>
+                          </div>
+
+                          <div className="bulk-build-card__details">
+                            {result.lock ? (
+                              <div className="bulk-build-card__detail-row">
+                                <span className="bulk-build-card__detail-name">Замок</span>
+                                <span className="bulk-build-card__detail-value">
+                                  1 шт на сторону • {result.lock.weightKg} кг • {result.lock.thicknessMm} мм
+                                </span>
+                              </div>
+                            ) : null}
+
+                            {result.platesPerSide.length > 0 ? (
+                              result.platesPerSide.map((plate) => (
+                                <div
+                                  key={plate.equipmentId}
+                                  className="bulk-build-card__detail-row"
+                                >
+                                  <span className="bulk-build-card__detail-name">{plate.name}</span>
+                                  <span className="bulk-build-card__detail-value">
+                                    {plate.countPerSide} шт на сторону • {plate.weightKg} кг •{' '}
+                                    {plate.thicknessMm} мм
+                                  </span>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="bulk-build-card__detail-row">
+                                <span className="bulk-build-card__detail-name">Блины</span>
+                                <span className="bulk-build-card__detail-value">Не используются</span>
+                              </div>
+                            )}
+                          </div>
+                        </Flex>
+                      </Card>
+                    )
+                  })}
+                </Flex>
+              </div>
+            </>
+          )}
+        </Flex>
+      </Modal>
+
+      <Modal
+        title="Редактировать элемент"
         open={Boolean(editingItem)}
+        okText="Сохранить"
+        cancelText="Отмена"
         onOk={() => void handleEdit()}
         onCancel={() => {
           setEditingItem(null)
           editForm.resetFields()
         }}
-        okText="Сохранить"
-        cancelText="Отмена"
       >
         <Form form={editForm} layout="vertical">
           <EquipmentFields form={editForm} />

@@ -1,50 +1,56 @@
-import type { EquipmentItem } from './types';
+import type { EquipmentItem } from './types'
 
 export type DumbbellBuildResult = {
-  totalWeightKg: number;
-  deltaKg: number;
-  sideThicknessMm: number;
+  totalWeightKg: number
+  deltaKg: number
+  sideThicknessMm: number
   platesPerSide: Array<{
-    equipmentId: string;
-    name: string;
-    countPerSide: number;
-    weightKg: number;
-    thicknessMm: number;
-  }>;
+    equipmentId: string
+    name: string
+    countPerSide: number
+    weightKg: number
+    thicknessMm: number
+  }>
   lock: null | {
-    equipmentId: string;
-    name: string;
-    weightKg: number;
-    thicknessMm: number;
-  };
-};
+    equipmentId: string
+    name: string
+    weightKg: number
+    thicknessMm: number
+  }
+}
 
 type BuildOptions = {
-  handle: EquipmentItem;
-  plates: EquipmentItem[];
-  lock?: EquipmentItem | null;
-  targetWeightKg: number;
-  maxResults?: number;
-};
+  handle: EquipmentItem
+  plates: EquipmentItem[]
+  lock?: EquipmentItem | null
+  targetWeightKg: number
+  maxResults?: number
+}
+
+type BuildAllOptions = {
+  handle: EquipmentItem
+  plates: EquipmentItem[]
+  lock?: EquipmentItem | null
+}
 
 function round2(value: number) {
-  return Math.round(value * 100) / 100;
+  return Math.round(value * 100) / 100
 }
 
 function isCompatible(handle: EquipmentItem, plate: EquipmentItem) {
   if (!handle.mountSizeMm || !plate.mountSizeMm) {
-    return true;
+    return true
   }
 
-  return handle.mountSizeMm === plate.mountSizeMm;
+  return handle.mountSizeMm === plate.mountSizeMm
 }
 
-export function buildDumbbellConfigurations(options: BuildOptions) {
-  const { handle, plates, lock, targetWeightKg, maxResults = 8 } = options;
-  const handleWeight = handle.weightKg ?? 0;
-  const sleeveLength = handle.sleeveLengthMm ?? Number.POSITIVE_INFINITY;
-  const lockWeight = lock?.weightKg ?? 0;
-  const lockThickness = lock?.thicknessMm ?? 0;
+function collectAllConfigurations(options: BuildAllOptions) {
+  const { handle, plates, lock } = options
+  const handleWeight = handle.weightKg ?? 0
+  const sleeveLength = handle.sleeveLengthMm ?? Number.POSITIVE_INFINITY
+  const lockWeight = lock?.weightKg ?? 0
+  const lockThickness = lock?.thicknessMm ?? 0
 
   const eligiblePlates = plates
     .filter(
@@ -55,9 +61,9 @@ export function buildDumbbellConfigurations(options: BuildOptions) {
         plate.quantity >= 2 &&
         isCompatible(handle, plate),
     )
-    .sort((left, right) => (right.weightKg ?? 0) - (left.weightKg ?? 0));
+    .sort((left, right) => (right.weightKg ?? 0) - (left.weightKg ?? 0))
 
-  const results: DumbbellBuildResult[] = [];
+  const results: DumbbellBuildResult[] = []
 
   function dfs(
     index: number,
@@ -65,10 +71,10 @@ export function buildDumbbellConfigurations(options: BuildOptions) {
     sideThickness: number,
     selected: DumbbellBuildResult['platesPerSide'],
   ) {
-    const totalWeightKg = round2(handleWeight + (sideWeight + lockWeight) * 2);
+    const totalWeightKg = round2(handleWeight + (sideWeight + lockWeight) * 2)
     results.push({
       totalWeightKg,
-      deltaKg: round2(totalWeightKg - targetWeightKg),
+      deltaKg: 0,
       sideThicknessMm: round2(sideThickness + lockThickness),
       platesPerSide: selected.filter((item) => item.countPerSide > 0),
       lock: lock
@@ -79,29 +85,25 @@ export function buildDumbbellConfigurations(options: BuildOptions) {
             thicknessMm: lockThickness,
           }
         : null,
-    });
+    })
 
     if (index >= eligiblePlates.length) {
-      return;
+      return
     }
 
-    for (
-      let nextIndex = index;
-      nextIndex < eligiblePlates.length;
-      nextIndex += 1
-    ) {
-      const plate = eligiblePlates[nextIndex];
-      const maxPairs = Math.floor(plate.quantity / 2);
-      const weightKg = plate.weightKg ?? 0;
-      const thicknessMm = plate.thicknessMm ?? 0;
+    for (let nextIndex = index; nextIndex < eligiblePlates.length; nextIndex += 1) {
+      const plate = eligiblePlates[nextIndex]
+      const maxPairs = Math.floor(plate.quantity / 2)
+      const weightKg = plate.weightKg ?? 0
+      const thicknessMm = plate.thicknessMm ?? 0
 
       for (let countPerSide = 1; countPerSide <= maxPairs; countPerSide += 1) {
-        const nextThickness = sideThickness + thicknessMm * countPerSide;
+        const nextThickness = sideThickness + thicknessMm * countPerSide
         if (nextThickness + lockThickness > sleeveLength) {
-          break;
+          break
         }
 
-        const nextWeight = sideWeight + weightKg * countPerSide;
+        const nextWeight = sideWeight + weightKg * countPerSide
         dfs(nextIndex + 1, nextWeight, nextThickness, [
           ...selected,
           {
@@ -111,28 +113,15 @@ export function buildDumbbellConfigurations(options: BuildOptions) {
             weightKg,
             thicknessMm,
           },
-        ]);
+        ])
       }
     }
   }
 
-  dfs(0, 0, 0, []);
+  dfs(0, 0, 0, [])
 
   return results
     .filter((result) => result.totalWeightKg >= handleWeight)
-    .sort((left, right) => {
-      const deltaDiff = Math.abs(left.deltaKg) - Math.abs(right.deltaKg);
-      if (deltaDiff !== 0) {
-        return deltaDiff;
-      }
-
-      const thicknessDiff = left.sideThicknessMm - right.sideThicknessMm;
-      if (thicknessDiff !== 0) {
-        return thicknessDiff;
-      }
-
-      return left.totalWeightKg - right.totalWeightKg;
-    })
     .filter(
       (result, index, array) =>
         array.findIndex(
@@ -143,5 +132,38 @@ export function buildDumbbellConfigurations(options: BuildOptions) {
               JSON.stringify(result.platesPerSide),
         ) === index,
     )
-    .slice(0, maxResults);
+}
+
+export function buildAllDumbbellConfigurations(options: BuildAllOptions) {
+  return collectAllConfigurations(options).sort((left, right) => {
+    if (left.totalWeightKg !== right.totalWeightKg) {
+      return left.totalWeightKg - right.totalWeightKg
+    }
+
+    return left.sideThicknessMm - right.sideThicknessMm
+  })
+}
+
+export function buildDumbbellConfigurations(options: BuildOptions) {
+  const { targetWeightKg, maxResults = 8, ...rest } = options
+
+  return collectAllConfigurations(rest)
+    .map((result) => ({
+      ...result,
+      deltaKg: round2(result.totalWeightKg - targetWeightKg),
+    }))
+    .sort((left, right) => {
+      const deltaDiff = Math.abs(left.deltaKg) - Math.abs(right.deltaKg)
+      if (deltaDiff !== 0) {
+        return deltaDiff
+      }
+
+      const thicknessDiff = left.sideThicknessMm - right.sideThicknessMm
+      if (thicknessDiff !== 0) {
+        return thicknessDiff
+      }
+
+      return left.totalWeightKg - right.totalWeightKg
+    })
+    .slice(0, maxResults)
 }

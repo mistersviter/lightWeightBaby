@@ -19,6 +19,7 @@ type DumbbellBuilderTabProps = {
   onLockChange: (lockId: string) => void
   onTargetWeightChange: (weight: number) => void
   onSaveBuild: (result: DumbbellBuildResult) => void
+  onGenerateAll: () => void
 }
 
 function BuildResultCard({
@@ -43,11 +44,7 @@ function BuildResultCard({
         </div>
         <Flex gap={8} align="center">
           <Tag color={exact ? 'green' : 'gold'}>{exact ? 'Точно' : 'Близко'}</Tag>
-          <Button
-            size="small"
-            type={exact ? 'primary' : 'default'}
-            onClick={() => onSave(result)}
-          >
+          <Button size="small" type={exact ? 'primary' : 'default'} onClick={() => onSave(result)}>
             Создать снаряд
           </Button>
         </Flex>
@@ -55,14 +52,12 @@ function BuildResultCard({
       <Flex vertical gap={4}>
         {result.lock ? (
           <Text>
-            Замок: 1 шт на сторону ({result.lock.weightKg} кг, {result.lock.thicknessMm}{' '}
-            мм)
+            Замок: 1 шт на сторону ({result.lock.weightKg} кг, {result.lock.thicknessMm} мм)
           </Text>
         ) : null}
         {result.platesPerSide.map((plate) => (
           <Text key={plate.equipmentId}>
-            {plate.name}: {plate.countPerSide} шт на сторону ({plate.weightKg} кг,{' '}
-            {plate.thicknessMm} мм)
+            {plate.name}: {plate.countPerSide} шт на сторону ({plate.weightKg} кг, {plate.thicknessMm} мм)
           </Text>
         ))}
       </Flex>
@@ -117,15 +112,16 @@ export function DumbbellBuilderTab({
   onLockChange,
   onTargetWeightChange,
   onSaveBuild,
+  onGenerateAll,
 }: DumbbellBuilderTabProps) {
   return (
     <Flex vertical gap={24}>
       <Card size="small" className="entity-item-card">
         <Title level={5}>Подбор конфигурации</Title>
         <Text type="secondary">
-          Сборка считается для одной разборной гантели. Приложение учитывает
-          симметричную развесовку, доступное количество блинов, посадочный размер и
-          суммарную толщину блинов на каждой втулке.
+          Сборка считается для одной разборной гантели. Приложение учитывает симметричную
+          развесовку, доступное количество блинов, посадочный размер и суммарную толщину
+          блинов на каждой втулке.
         </Text>
         <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
           <Col xs={24} md={12}>
@@ -165,6 +161,12 @@ export function DumbbellBuilderTab({
               onChange={(value) => onTargetWeightChange(value ?? 0)}
             />
           </Col>
+          <Col xs={24} md={12}>
+            <div className="inventory-helper-label">Все возможные конфигурации</div>
+            <Button block onClick={onGenerateAll} disabled={!selectedHandle || plates.length === 0}>
+              Сгенерировать все варианты
+            </Button>
+          </Col>
         </Row>
       </Card>
 
@@ -184,8 +186,7 @@ export function DumbbellBuilderTab({
               ) : null}
               {selectedLock ? (
                 <Tag color="gold">
-                  Замок: {selectedLock.name} · {selectedLock.weightKg ?? 0} кг ·{' '}
-                  {selectedLock.thicknessMm ?? 0} мм
+                  Замок: {selectedLock.name} · {selectedLock.weightKg ?? 0} кг · {selectedLock.thicknessMm ?? 0} мм
                 </Tag>
               ) : null}
             </Flex>
@@ -195,12 +196,7 @@ export function DumbbellBuilderTab({
             <Empty description="Не удалось найти ни одной допустимой сборки под текущие ограничения" />
           ) : (
             <Flex vertical gap={16}>
-              <BuildResultGroup
-                title="Точные совпадения"
-                results={exactResults}
-                exact
-                onSaveBuild={onSaveBuild}
-              />
+              <BuildResultGroup title="Точные совпадения" results={exactResults} exact onSaveBuild={onSaveBuild} />
               <BuildResultGroup
                 title="Ближайшие варианты"
                 results={nearestResults.slice(0, 6)}
