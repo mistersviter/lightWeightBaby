@@ -1,14 +1,14 @@
-import type { EquipmentKind, EquipmentRequirementCategory } from './types'
-import { toDateInput } from './utils'
+import type { EquipmentKind, EquipmentRequirementCategory } from './types';
+import { toDateInput } from './utils';
 
-export type CalendarMode = 'day' | 'week' | 'month'
+export type CalendarMode = 'day' | 'week' | 'month';
 
-export const today = new Date()
-export const todayInput = toDateInput(today)
+export const today = new Date();
+export const todayInput = toDateInput(today);
 
 export const equipmentKindOptions: Array<{
-  label: string
-  options: Array<{ value: EquipmentKind; label: string }>
+  label: string;
+  options: Array<{ value: EquipmentKind; label: string }>;
 }> = [
   {
     label: 'Компоненты для сборки',
@@ -38,11 +38,11 @@ export const equipmentKindOptions: Array<{
       { value: 'accessory_other', label: 'Другое оборудование' },
     ],
   },
-]
+];
 
 export const equipmentRequirementCategoryOptions: Array<{
-  label: string
-  options: Array<{ value: EquipmentRequirementCategory; label: string }>
+  label: string;
+  options: Array<{ value: EquipmentRequirementCategory; label: string }>;
 }> = [
   {
     label: 'Нагрузка',
@@ -71,7 +71,7 @@ export const equipmentRequirementCategoryOptions: Array<{
       { value: 'other', label: 'Другое' },
     ],
   },
-]
+];
 
 export const muscleGroupOptions: Array<{ value: string; label: string }> = [
   { value: 'Грудь', label: 'Грудь' },
@@ -88,34 +88,37 @@ export const muscleGroupOptions: Array<{ value: string; label: string }> = [
   { value: 'Икры', label: 'Икры' },
   { value: 'Ноги', label: 'Ноги' },
   { value: 'Все тело', label: 'Все тело' },
-]
+];
 
-export const calendarModeOptions: Array<{ label: string; value: CalendarMode }> = [
+export const calendarModeOptions: Array<{
+  label: string;
+  value: CalendarMode;
+}> = [
   { label: 'День', value: 'day' },
   { label: 'Неделя', value: 'week' },
   { label: 'Месяц', value: 'month' },
-]
+];
 
 export const initialEntryForm = {
   exerciseId: '',
   sets: [{ reps: 10, weightKg: null, equipmentAssignments: [] }],
   notes: '',
-}
+};
 
 export const defaultSessionFormValues = {
   date: todayInput,
   title: 'Силовая тренировка',
   notes: '',
-}
+};
 
 export const defaultMeasurementFormValues = {
   date: todayInput,
-}
+};
 
 export const defaultSprintFormValues = {
   startDate: todayInput,
   durationDays: 28,
-}
+};
 
 export const defaultEquipmentFormValues = {
   kind: 'plate' as EquipmentKind,
@@ -126,6 +129,6 @@ export const defaultEquipmentFormValues = {
   diameterMm: 120,
   sleeveLengthMm: 160,
   gripLengthMm: 120,
-  mountSizeMm: 30,
+  mountSizeMm: 26,
   increment: 2.5,
-}
+};
