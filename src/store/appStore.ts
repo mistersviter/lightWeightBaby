@@ -113,6 +113,7 @@ type AppStore = {
   updateEquipment: (equipmentId: string, values: EquipmentInput) => Promise<void>
   deleteEquipment: (equipmentId: string) => Promise<void>
   saveDumbbellAssembly: (assembly: Omit<DumbbellAssembly, 'id' | 'createdAt'>) => Promise<void>
+  deleteDumbbellAssembly: (assemblyId: string) => Promise<void>
   saveExercise: (values: ExerciseInput) => Promise<Exercise>
   updateExercise: (exerciseId: string, values: ExerciseInput) => Promise<void>
   deleteExercise: (exerciseId: string) => Promise<void>
@@ -612,6 +613,79 @@ export const useAppStore = create<AppStore>((set, get) => ({
       dumbbellAssemblies: [nextAssembly, ...get().data.dumbbellAssemblies],
     }
     set({ data: nextData })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  deleteDumbbellAssembly: async (assemblyId) => {
+    const { data, activeWorkout } = get()
+    const nextActiveWorkout = activeWorkout
+      ? {
+          ...activeWorkout,
+          updatedAt: new Date().toISOString(),
+          entries: activeWorkout.entries.map((entry) => ({
+            ...entry,
+            sets: entry.sets.map((set) => ({
+              ...set,
+              plannedEquipmentAssignments: set.plannedEquipmentAssignments.filter(
+                (assignment) =>
+                  !(assignment.itemType === 'assembly' && assignment.itemId === assemblyId),
+              ),
+              actualEquipmentAssignments: set.actualEquipmentAssignments.filter(
+                (assignment) =>
+                  !(assignment.itemType === 'assembly' && assignment.itemId === assemblyId),
+              ),
+            })),
+          })),
+        }
+      : null
+
+    const nextData = {
+      ...data,
+      dumbbellAssemblies: data.dumbbellAssemblies.filter(
+        (assembly) => assembly.id !== assemblyId,
+      ),
+      workoutTemplates: data.workoutTemplates.map((template) => ({
+        ...template,
+        entries: template.entries.map((entry) => ({
+          ...entry,
+          sets: entry.sets.map((set) => ({
+            ...set,
+            equipmentAssignments: set.equipmentAssignments.filter(
+              (assignment) =>
+                !(assignment.itemType === 'assembly' && assignment.itemId === assemblyId),
+            ),
+          })),
+        })),
+      })),
+      sessions: data.sessions.map((session) => ({
+        ...session,
+        entries: session.entries.map((entry) => ({
+          ...entry,
+          sets: entry.sets.map((set) => ({
+            ...set,
+            equipmentAssignments: set.equipmentAssignments.filter(
+              (assignment) =>
+                !(assignment.itemType === 'assembly' && assignment.itemId === assemblyId),
+            ),
+          })),
+        })),
+        plannedEntries: session.plannedEntries
+          ? session.plannedEntries.map((entry) => ({
+              ...entry,
+              sets: entry.sets.map((set) => ({
+                ...set,
+                equipmentAssignments: set.equipmentAssignments.filter(
+                  (assignment) =>
+                    !(assignment.itemType === 'assembly' && assignment.itemId === assemblyId),
+                ),
+              })),
+            }))
+          : null,
+      })),
+      activeWorkout: nextActiveWorkout,
+    }
+
+    set({ data: nextData, activeWorkout: nextActiveWorkout })
     await persistData(nextData, (error) => set({ error }))
   },
 

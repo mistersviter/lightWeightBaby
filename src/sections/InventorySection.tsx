@@ -110,6 +110,7 @@ export function InventorySection() {
   const updateEquipment = useAppStore((state) => state.updateEquipment)
   const deleteEquipment = useAppStore((state) => state.deleteEquipment)
   const saveDumbbellAssembly = useAppStore((state) => state.saveDumbbellAssembly)
+  const deleteDumbbellAssembly = useAppStore((state) => state.deleteDumbbellAssembly)
 
   const [editingItem, setEditingItem] = useState<EquipmentItem | null>(null)
   const [selectedHandleId, setSelectedHandleId] = useState('')
@@ -331,7 +332,12 @@ export function InventorySection() {
           {
             key: 'assemblies',
             label: 'Сохраненные снаряды',
-            children: <AssembliesTab dumbbellAssemblies={dumbbellAssemblies} />,
+            children: (
+              <AssembliesTab
+                dumbbellAssemblies={dumbbellAssemblies}
+                onDelete={(assemblyId) => void deleteDumbbellAssembly(assemblyId)}
+              />
+            ),
           },
         ]}
       />
@@ -372,12 +378,13 @@ export function InventorySection() {
             <Empty description="Для выбранной рукоятки не нашлось ни одной допустимой сборки." />
           ) : (
             <>
-              {pendingAllBuildResults.length !== allBuildResults.length ? (
-                <Text type="secondary">
-                  Новых вариантов для создания: {pendingAllBuildResults.length}. Уже сохранено:{' '}
-                  {allBuildResults.length - pendingAllBuildResults.length}.
-                </Text>
-              ) : null}
+              <Flex gap={8} wrap="wrap">
+                <Tag color="green">Будет создано: {pendingAllBuildResults.length}</Tag>
+                <Tag color="default">
+                  Уже сохранено: {allBuildResults.length - pendingAllBuildResults.length}
+                </Tag>
+                <Tag color="blue">Всего вариантов: {allBuildResults.length}</Tag>
+              </Flex>
 
               <div style={{ maxHeight: 520, overflowY: 'auto', paddingRight: 4 }}>
                 <Flex vertical gap={12}>
