@@ -858,6 +858,7 @@ export function WorkoutsSection() {
       <Modal
         title="Сохранить как выполненную тренировку"
         open={logWorkoutOpen}
+        forceRender
         onOk={() => void sessionForm.submit()}
         onCancel={() => {
           setLogWorkoutOpen(false)
@@ -887,6 +888,7 @@ export function WorkoutsSection() {
       <Modal
         title="Редактировать тренировку"
         open={Boolean(editingSession)}
+        forceRender
         onOk={() => void handleEditSession()}
         onCancel={() => {
           setEditingSession(null)
@@ -957,6 +959,7 @@ export function WorkoutsSection() {
       <Modal
         title="Редактировать шаблон"
         open={Boolean(editingTemplate)}
+        forceRender
         onOk={() => void handleEditTemplate()}
         onCancel={() => {
           setEditingTemplate(null)
@@ -1018,6 +1021,7 @@ export function WorkoutsSection() {
       <Modal
         title={schedulingTemplate ? `Назначить: ${schedulingTemplate.name}` : 'Назначить шаблон'}
         open={Boolean(schedulingTemplate)}
+        forceRender
         onOk={() => void handleScheduleTemplate()}
         onCancel={() => {
           setSchedulingTemplate(null)
