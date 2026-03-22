@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react';
 import {
   Button,
   Card,
@@ -11,11 +11,11 @@ import {
   Select,
   Tag,
   Typography,
-} from 'antd'
-import dayjs from 'dayjs'
-import { calendarModeOptions } from '../constants'
-import { useDashboardData } from '../hooks/useDashboardData'
-import { useAppStore } from '../store/appStore'
+} from 'antd';
+import dayjs from 'dayjs';
+import { calendarModeOptions } from '../constants';
+import { useDashboardData } from '../hooks/useDashboardData';
+import { useAppStore } from '../store/appStore';
 import {
   formatShortDate,
   formatWeekday,
@@ -25,41 +25,46 @@ import {
   isTodayDateInput,
   isWeekendDateInput,
   toDateInput,
-} from '../utils'
+} from '../utils';
 
-const { Text, Title } = Typography
+const { Text, Title } = Typography;
 
 export function CalendarSection() {
-  const [templateByDay, setTemplateByDay] = useState<Record<string, string>>({})
-  const [selectedTemplateId, setSelectedTemplateId] = useState('')
-  const [selectedDate, setSelectedDate] = useState(toDateInput(new Date()))
+  const [templateByDay, setTemplateByDay] = useState<Record<string, string>>(
+    {},
+  );
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [selectedDate, setSelectedDate] = useState(toDateInput(new Date()));
 
-  const calendarMode = useAppStore((state) => state.calendarMode)
-  const setCalendarMode = useAppStore((state) => state.setCalendarMode)
-  const moveCalendar = useAppStore((state) => state.moveCalendar)
-  const resetCalendar = useAppStore((state) => state.resetCalendar)
-  const sessions = useAppStore((state) => state.data.sessions)
-  const measurements = useAppStore((state) => state.data.measurements)
-  const scheduledWorkouts = useAppStore((state) => state.data.scheduledWorkouts)
+  const calendarMode = useAppStore((state) => state.calendarMode);
+  const setCalendarMode = useAppStore((state) => state.setCalendarMode);
+  const moveCalendar = useAppStore((state) => state.moveCalendar);
+  const resetCalendar = useAppStore((state) => state.resetCalendar);
+  const sessions = useAppStore((state) => state.data.sessions);
+  const measurements = useAppStore((state) => state.data.measurements);
+  const scheduledWorkouts = useAppStore(
+    (state) => state.data.scheduledWorkouts,
+  );
   const scheduleWorkoutTemplate = useAppStore(
     (state) => state.scheduleWorkoutTemplate,
-  )
+  );
   const deleteScheduledWorkout = useAppStore(
     (state) => state.deleteScheduledWorkout,
-  )
+  );
   const completeScheduledWorkout = useAppStore(
     (state) => state.completeScheduledWorkout,
-  )
-  const { calendarDays, workoutTemplateOptions } = useDashboardData()
+  );
+  const { calendarDays, workoutTemplateOptions } = useDashboardData();
 
-  const hasTemplates = workoutTemplateOptions.length > 0
+  const hasTemplates = workoutTemplateOptions.length > 0;
 
   const selectedTemplateLabel = useMemo(
     () =>
-      workoutTemplateOptions.find((option) => option.value === selectedTemplateId)
-        ?.label ?? '',
+      workoutTemplateOptions.find(
+        (option) => option.value === selectedTemplateId,
+      )?.label ?? '',
     [selectedTemplateId, workoutTemplateOptions],
-  )
+  );
 
   return (
     <Flex vertical gap={16} style={{ width: '100%' }}>
@@ -108,10 +113,13 @@ export function CalendarSection() {
                   disabled={!selectedTemplateId || !selectedDate}
                   onClick={() => {
                     if (!selectedTemplateId || !selectedDate) {
-                      return
+                      return;
                     }
 
-                    void scheduleWorkoutTemplate(selectedTemplateId, selectedDate)
+                    void scheduleWorkoutTemplate(
+                      selectedTemplateId,
+                      selectedDate,
+                    );
                   }}
                 >
                   Назначить
@@ -131,14 +139,14 @@ export function CalendarSection() {
 
       <Row gutter={[12, 12]}>
         {calendarDays.map((date) => {
-          const daySessions = getSessionsForDay(sessions, date)
-          const dayMeasurements = getMeasurementsForDay(measurements, date)
+          const daySessions = getSessionsForDay(sessions, date);
+          const dayMeasurements = getMeasurementsForDay(measurements, date);
           const dayPlannedWorkouts = getScheduledWorkoutsForDay(
             scheduledWorkouts,
             date,
-          )
-          const isToday = isTodayDateInput(date)
-          const isWeekend = isWeekendDateInput(date)
+          );
+          const isToday = isTodayDateInput(date);
+          const isWeekend = isWeekendDateInput(date);
 
           return (
             <Col
@@ -155,12 +163,17 @@ export function CalendarSection() {
                 }`}
                 title={
                   <div className="calendar-day-card__title">
-                    <span className="calendar-day-card__weekday">
+                    <Tag
+                      variant={'filled'}
+                      className="calendar-day-card__weekday-tag"
+                    >
                       {formatWeekday(date)}
-                    </span>
-                    <span className="calendar-day-card__date">
-                      {formatShortDate(date)}
-                    </span>
+                    </Tag>
+                    <div className="calendar-day-card__date-block">
+                      <span className="calendar-day-card__date">
+                        {formatShortDate(date)}
+                      </span>
+                    </div>
                   </div>
                 }
                 extra={isToday ? <Tag color="blue">Сегодня</Tag> : null}
@@ -171,8 +184,12 @@ export function CalendarSection() {
                   </Text>
 
                   <Flex gap={8} wrap="wrap">
-                    {daySessions.length > 0 ? <Tag color="blue">Тренировка</Tag> : null}
-                    {dayMeasurements.length > 0 ? <Tag color="gold">Замер</Tag> : null}
+                    {daySessions.length > 0 ? (
+                      <Tag color="blue">Тренировка</Tag>
+                    ) : null}
+                    {dayMeasurements.length > 0 ? (
+                      <Tag color="gold">Замер</Tag>
+                    ) : null}
                     {dayPlannedWorkouts.length > 0 ? (
                       <Tag color="purple">
                         Запланировано: {dayPlannedWorkouts.length}
@@ -191,16 +208,20 @@ export function CalendarSection() {
                             <Button
                               size="small"
                               type="primary"
-                              onClick={() => void completeScheduledWorkout(item.id)}
+                              onClick={() =>
+                                void completeScheduledWorkout(item.id)
+                              }
                             >
                               Выполнить
                             </Button>
                             <Button
                               size="small"
                               danger
-                              onClick={() => void deleteScheduledWorkout(item.id)}
+                              onClick={() =>
+                                void deleteScheduledWorkout(item.id)
+                              }
                             >
-                          Отменить
+                              Отменить
                             </Button>
                           </Flex>
                         </div>
@@ -225,16 +246,16 @@ export function CalendarSection() {
                         size="small"
                         disabled={!templateByDay[date]}
                         onClick={() => {
-                          const templateId = templateByDay[date]
+                          const templateId = templateByDay[date];
                           if (!templateId) {
-                            return
+                            return;
                           }
 
-                          void scheduleWorkoutTemplate(templateId, date)
+                          void scheduleWorkoutTemplate(templateId, date);
                           setTemplateByDay((current) => ({
                             ...current,
                             [date]: '',
-                          }))
+                          }));
                         }}
                       >
                         Назначить на этот день
@@ -250,9 +271,9 @@ export function CalendarSection() {
                 </Flex>
               </Card>
             </Col>
-          )
+          );
         })}
       </Row>
     </Flex>
-  )
+  );
 }

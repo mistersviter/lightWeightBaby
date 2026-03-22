@@ -192,21 +192,31 @@
 
 .calendar-day-card__title {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
 }
 
-.calendar-day-card__weekday {
-  font-size: 12px;
+.calendar-day-card__weekday-tag.ant-tag {
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #64748b;
+  letter-spacing: 0.05em;
+  color: #475569;
+  background: #eef3f9;
+}
+
+.calendar-day-card__date-block {
+  display: flex;
+  align-items: baseline;
 }
 
 .calendar-day-card__date {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   color: #0f172a;
 }
 
@@ -215,8 +225,14 @@
   box-shadow: 0 10px 24px rgba(22, 119, 255, 0.12);
 }
 
-.calendar-day-card--weekend .calendar-day-card__weekday {
+.calendar-day-card--weekend .calendar-day-card__weekday-tag.ant-tag {
   color: #d4380d;
+  background: #fff1f0;
+}
+
+.calendar-day-card--today .calendar-day-card__weekday-tag.ant-tag {
+  background: #e6f4ff;
+  color: #0958d9;
 }
 
 .bulk-build-card.ant-card .ant-card-body {
@@ -304,6 +320,13 @@
 
   .workout-builder-card__header {
     flex-direction: column;
+  }
+
+  .calendar-day-card__title {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+    min-height: unset;
   }
 
   .bulk-build-card__detail-row {
