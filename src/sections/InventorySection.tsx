@@ -60,20 +60,6 @@ function buildSignatureFromAssembly(assembly: DumbbellAssembly) {
   })
 }
 
-function formatBuildComposition(result: DumbbellBuildResult) {
-  const parts: string[] = []
-
-  if (result.lock) {
-    parts.push(`замок ${result.lock.name}`)
-  }
-
-  for (const plate of result.platesPerSide) {
-    parts.push(`${plate.name} × ${plate.countPerSide} на сторону`)
-  }
-
-  return parts.length > 0 ? parts.join(', ') : 'Без блинов, только рукоятка'
-}
-
 function formatPlateLine(result: DumbbellBuildResult) {
   if (result.platesPerSide.length === 0) {
     return 'Без блинов'
@@ -149,10 +135,8 @@ export function InventorySection() {
   }, [locks, selectedLockId])
 
   const effectiveHandleId = selectedHandleId || handles[0]?.id || ''
-  const selectedHandle =
-    handles.find((item) => item.id === effectiveHandleId) ?? null
-  const selectedLock =
-    locks.find((item) => item.id === selectedLockId) ?? null
+  const selectedHandle = handles.find((item) => item.id === effectiveHandleId) ?? null
+  const selectedLock = locks.find((item) => item.id === selectedLockId) ?? null
 
   const buildResults = useMemo(() => {
     if (!selectedHandle || plates.length === 0) {
@@ -191,9 +175,7 @@ export function InventorySection() {
 
   const existingAssemblySignatures = useMemo(
     () =>
-      new Set(
-        dumbbellAssemblies.map((assembly) => buildSignatureFromAssembly(assembly)),
-      ),
+      new Set(dumbbellAssemblies.map((assembly) => buildSignatureFromAssembly(assembly))),
     [dumbbellAssemblies],
   )
 
@@ -424,8 +406,8 @@ export function InventorySection() {
                               <span>{result.sideThicknessMm} мм на сторону</span>
                             </div>
                             <div className="bulk-build-card__metric">
-                              <span className="bulk-build-card__metric-label">Состав</span>
-                              <span>{formatBuildComposition(result)}</span>
+                              <span className="bulk-build-card__metric-label">Замок</span>
+                              <span>{result.lock ? result.lock.name : 'Без замка'}</span>
                             </div>
                           </div>
 
