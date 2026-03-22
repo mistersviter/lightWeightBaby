@@ -110,8 +110,8 @@ export interface ActiveWorkout {
   date: string
   title: string
   notes: string
-  sourceType: 'template' | 'scheduled'
-  sourceTemplateId: string
+  sourceType: 'manual' | 'template' | 'scheduled'
+  sourceTemplateId: string | null
   sourceScheduledWorkoutId: string | null
   startedAt: string
   updatedAt: string

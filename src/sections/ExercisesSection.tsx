@@ -16,7 +16,12 @@ import {
   Select,
   Typography,
 } from 'antd'
-import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
+import {
+  DeleteOutlined,
+  EditOutlined,
+  PlayCircleOutlined,
+  PlusOutlined,
+} from '@ant-design/icons'
 import {
   equipmentRequirementCategoryOptions,
   muscleGroupOptions,
@@ -113,6 +118,9 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
   const saveExercise = useAppStore((state) => state.saveExercise)
   const updateExercise = useAppStore((state) => state.updateExercise)
   const deleteExercise = useAppStore((state) => state.deleteExercise)
+  const startQuickWorkoutFromExercise = useAppStore(
+    (state) => state.startQuickWorkoutFromExercise,
+  )
 
   const requirementOptions = useMemo(
     () =>
@@ -303,6 +311,12 @@ export function ExercisesSection({ onExerciseCreated }: ExercisesSectionProps) {
                   </Text>
                 </div>
                 <Flex gap={4}>
+                  <Button
+                    type="text"
+                    icon={<PlayCircleOutlined />}
+                    aria-label="Быстро начать тренировку с этого упражнения"
+                    onClick={() => void startQuickWorkoutFromExercise(exercise.id)}
+                  />
                   <Button
                     type="text"
                     icon={<EditOutlined />}

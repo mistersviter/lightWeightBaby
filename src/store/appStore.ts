@@ -124,8 +124,12 @@ type AppStore = {
   scheduleWorkoutTemplate: (templateId: string, date: string) => Promise<void>
   deleteScheduledWorkout: (scheduledWorkoutId: string) => Promise<void>
   completeScheduledWorkout: (scheduledWorkoutId: string) => Promise<void>
+  startQuickWorkoutFromExercise: (exerciseId: string, date?: string) => Promise<void>
   startWorkoutFromTemplate: (templateId: string, date?: string) => Promise<void>
   startScheduledWorkout: (scheduledWorkoutId: string) => Promise<void>
+  addActiveWorkoutEntry: (entry: Omit<SessionEntry, 'id'>) => Promise<void>
+  addActiveWorkoutSet: (entryId: string) => Promise<void>
+  updateActiveWorkoutMeta: (values: Partial<SessionInput>) => Promise<void>
   updateActiveWorkoutSet: (
     entryId: string,
     setId: string,
@@ -238,7 +242,8 @@ function buildActiveWorkout(
   exercises: Exercise[],
   options: {
     date: string
-    sourceType: 'template' | 'scheduled'
+    sourceType: 'manual' | 'template' | 'scheduled'
+    sourceTemplateId: string | null
     sourceScheduledWorkoutId: string | null
   },
 ): ActiveWorkout {
@@ -250,7 +255,7 @@ function buildActiveWorkout(
     title: template.name,
     notes: template.notes,
     sourceType: options.sourceType,
-    sourceTemplateId: template.id,
+    sourceTemplateId: options.sourceTemplateId,
     sourceScheduledWorkoutId: options.sourceScheduledWorkoutId,
     startedAt: now,
     updatedAt: now,
@@ -779,6 +784,55 @@ export const useAppStore = create<AppStore>((set, get) => ({
     await persistData(nextData, (error) => set({ error }))
   },
 
+  startQuickWorkoutFromExercise: async (exerciseId, date = toDateInput(new Date())) => {
+    const { data } = get()
+    const exercise = data.exercises.find((item) => item.id === exerciseId)
+    if (!exercise) {
+      return
+    }
+
+    const nextActiveWorkout: ActiveWorkout = {
+      id: createId('active-workout'),
+      date,
+      title: exercise.name,
+      notes: '',
+      sourceType: 'manual',
+      sourceTemplateId: null,
+      sourceScheduledWorkoutId: null,
+      startedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      entries: [
+        {
+          id: createId('active-entry'),
+          exerciseId: exercise.id,
+          exerciseName: exercise.name,
+          notes: '',
+          sets: [
+            {
+              id: createId('active-set'),
+              plannedReps: 10,
+              actualReps: 10,
+              plannedWeightKg: null,
+              actualWeightKg: null,
+              plannedEquipmentAssignments: [],
+              actualEquipmentAssignments: [],
+              notes: '',
+              status: 'pending',
+            },
+          ],
+        },
+      ],
+    }
+
+    const nextData = {
+      ...data,
+      activeWorkout: nextActiveWorkout,
+    }
+
+    set({ data: nextData, activeWorkout: nextActiveWorkout })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
   startWorkoutFromTemplate: async (templateId, date = toDateInput(new Date())) => {
     const { data } = get()
     const template = data.workoutTemplates.find((item) => item.id === templateId)
@@ -788,6 +842,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
     const nextActiveWorkout = buildActiveWorkout(template, data.exercises, {
       date,
+      sourceTemplateId: template.id,
       sourceType: 'template',
       sourceScheduledWorkoutId: null,
     })
@@ -814,9 +869,132 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
     const nextActiveWorkout = buildActiveWorkout(template, data.exercises, {
       date: scheduled.date,
+      sourceTemplateId: template.id,
       sourceType: 'scheduled',
       sourceScheduledWorkoutId: scheduled.id,
     })
+    const nextData = {
+      ...data,
+      activeWorkout: nextActiveWorkout,
+    }
+
+    set({ data: nextData, activeWorkout: nextActiveWorkout })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  addActiveWorkoutEntry: async (entry) => {
+    const { data, activeWorkout } = get()
+    if (!activeWorkout) {
+      return
+    }
+
+    const exercise = data.exercises.find((item) => item.id === entry.exerciseId)
+    const nextEntry: ActiveWorkoutEntry = {
+      id: createId('active-entry'),
+      exerciseId: entry.exerciseId,
+      exerciseName: exercise?.name ?? 'Упражнение',
+      notes: entry.notes?.trim() || '',
+      sets: normalizeSessionSets(entry.sets).map<ActiveWorkoutSet>((set) => ({
+        id: createId('active-set'),
+        plannedReps: set.reps,
+        actualReps: set.reps,
+        plannedWeightKg: set.weightKg,
+        actualWeightKg: set.weightKg,
+        plannedEquipmentAssignments: cloneAssignments(set.equipmentAssignments),
+        actualEquipmentAssignments: cloneAssignments(set.equipmentAssignments),
+        notes: '',
+        status: 'pending',
+      })),
+    }
+
+    const nextActiveWorkout: ActiveWorkout = {
+      ...activeWorkout,
+      updatedAt: new Date().toISOString(),
+      entries: [...activeWorkout.entries, nextEntry],
+    }
+
+    const nextData = {
+      ...data,
+      activeWorkout: nextActiveWorkout,
+    }
+
+    set({ data: nextData, activeWorkout: nextActiveWorkout })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  addActiveWorkoutSet: async (entryId) => {
+    const { data, activeWorkout } = get()
+    if (!activeWorkout) {
+      return
+    }
+
+    const nextActiveWorkout: ActiveWorkout = {
+      ...activeWorkout,
+      updatedAt: new Date().toISOString(),
+      entries: activeWorkout.entries.map((entry) => {
+        if (entry.id !== entryId) {
+          return entry
+        }
+
+        const previousSet = entry.sets[entry.sets.length - 1]
+        const nextSet: ActiveWorkoutSet = previousSet
+          ? {
+              ...previousSet,
+              id: createId('active-set'),
+              plannedEquipmentAssignments: cloneAssignments(
+                previousSet.plannedEquipmentAssignments,
+              ),
+              actualEquipmentAssignments: cloneAssignments(
+                previousSet.actualEquipmentAssignments,
+              ),
+              notes: previousSet.notes ?? '',
+              status: 'pending',
+            }
+          : {
+              id: createId('active-set'),
+              plannedReps: 10,
+              actualReps: 10,
+              plannedWeightKg: null,
+              actualWeightKg: null,
+              plannedEquipmentAssignments: [],
+              actualEquipmentAssignments: [],
+              notes: '',
+              status: 'pending',
+            }
+
+        return {
+          ...entry,
+          sets: [...entry.sets, nextSet],
+        }
+      }),
+    }
+
+    const nextData = {
+      ...data,
+      activeWorkout: nextActiveWorkout,
+    }
+
+    set({ data: nextData, activeWorkout: nextActiveWorkout })
+    await persistData(nextData, (error) => set({ error }))
+  },
+
+  updateActiveWorkoutMeta: async (values) => {
+    const { data, activeWorkout } = get()
+    if (!activeWorkout) {
+      return
+    }
+
+    const nextActiveWorkout: ActiveWorkout = {
+      ...activeWorkout,
+      title:
+        values.title === undefined
+          ? activeWorkout.title
+          : values.title.trim() || 'Тренировка',
+      notes:
+        values.notes === undefined ? activeWorkout.notes : values.notes?.trim() || '',
+      updatedAt: new Date().toISOString(),
+    }
+
     const nextData = {
       ...data,
       activeWorkout: nextActiveWorkout,

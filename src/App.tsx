@@ -44,6 +44,9 @@ function App() {
     (state) => state.deleteScheduledWorkout,
   )
   const startScheduledWorkout = useAppStore((state) => state.startScheduledWorkout)
+  const addActiveWorkoutEntry = useAppStore((state) => state.addActiveWorkoutEntry)
+  const addActiveWorkoutSet = useAppStore((state) => state.addActiveWorkoutSet)
+  const updateActiveWorkoutMeta = useAppStore((state) => state.updateActiveWorkoutMeta)
   const updateActiveWorkoutSet = useAppStore((state) => state.updateActiveWorkoutSet)
   const finishActiveWorkout = useAppStore((state) => state.finishActiveWorkout)
   const discardActiveWorkout = useAppStore((state) => state.discardActiveWorkout)
@@ -52,6 +55,7 @@ function App() {
   const {
     activeUser,
     actualEquipmentOptions,
+    exerciseOptions,
     nextSprint,
     sessionsThisWeek,
     todaySessions,
@@ -223,6 +227,10 @@ function App() {
                 equipment={data.equipment}
                 dumbbellAssemblies={data.dumbbellAssemblies}
                 actualEquipmentOptions={actualEquipmentOptions}
+                exerciseOptions={exerciseOptions}
+                onAddEntry={(entry) => void addActiveWorkoutEntry(entry)}
+                onAddSet={(entryId) => void addActiveWorkoutSet(entryId)}
+                onUpdateMeta={(values) => void updateActiveWorkoutMeta(values)}
                 onUpdateSet={(entryId, setId, values) =>
                   void updateActiveWorkoutSet(entryId, setId, values)
                 }

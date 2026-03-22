@@ -212,6 +212,24 @@
   border-color: #91caff;
 }
 
+.active-workout-card__header {
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.active-workout-card__intro {
+  display: flex;
+  flex: 1 1 320px;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.active-workout-card__add-exercise.ant-btn {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
 .active-workout-entry-card {
   border-color: #d9e1ec;
 }
@@ -398,6 +416,12 @@
 
   .workout-builder-card__header {
     flex-direction: column;
+  }
+
+  .active-workout-card__add-exercise.ant-btn {
+    width: 100%;
+    justify-content: center;
+    margin-top: 0;
   }
 
   .template-entry-collapse__label {

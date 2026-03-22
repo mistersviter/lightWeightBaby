@@ -150,7 +150,12 @@ function normalizeActiveWorkout(activeWorkout: ActiveWorkout | null | undefined)
   return {
     ...activeWorkout,
     sourceType:
-      activeWorkout.sourceType === 'scheduled' ? ('scheduled' as const) : ('template' as const),
+      activeWorkout.sourceType === 'scheduled'
+        ? ('scheduled' as const)
+        : activeWorkout.sourceType === 'manual'
+          ? ('manual' as const)
+          : ('template' as const),
+    sourceTemplateId: activeWorkout.sourceTemplateId ?? null,
     sourceScheduledWorkoutId: activeWorkout.sourceScheduledWorkoutId ?? null,
     entries: (activeWorkout.entries ?? []).map((entry) => ({
       ...entry,
