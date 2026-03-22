@@ -89,6 +89,74 @@
   line-height: 1.4;
 }
 
+.workout-builder-card .ant-card-body {
+  padding: 18px;
+}
+
+.workout-builder-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workout-builder-card__header .ant-typography h5,
+.workout-builder-card__header .ant-typography + .ant-typography {
+  margin-top: 8px;
+}
+
+.workout-builder-hint {
+  padding: 10px 12px;
+  border: 1px solid #edf1f7;
+  border-radius: 10px;
+  background: #fafcff;
+}
+
+.workout-builder-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.workout-builder-inline-action {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.workout-builder-sets-section {
+  padding: 14px;
+  border: 1px solid #e6edf5;
+  border-radius: 12px;
+  background: #fbfcfe;
+}
+
+.workout-builder-sets-section__header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 14px;
+}
+
+.workout-builder-sets-section .ant-card {
+  position: relative;
+  border-color: #e1e8f0;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+  background: #ffffff;
+}
+
+.workout-set-card__badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+}
+
+.workout-set-card__tag {
+  width: fit-content;
+  margin: 0;
+  font-weight: 600;
+}
+
 .bulk-build-card.ant-card .ant-card-body {
   padding: 16px;
 }
@@ -170,6 +238,10 @@
 
   .bulk-build-card__metrics {
     grid-template-columns: 1fr;
+  }
+
+  .workout-builder-card__header {
+    flex-direction: column;
   }
 
   .bulk-build-card__detail-row {

@@ -12,10 +12,16 @@ import {
   Popconfirm,
   Row,
   Select,
+  Tag,
   Tabs,
   Typography,
 } from 'antd'
-import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
+import {
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  ToolOutlined,
+} from '@ant-design/icons'
 import { equipmentRequirementCategoryOptions, initialEntryForm } from '../constants'
 import { useDashboardData } from '../hooks/useDashboardData'
 import { appFormDefaults, useAppStore } from '../store/appStore'
@@ -245,13 +251,15 @@ function EquipmentAssignmentsFields({
               </Col>
             </Row>
           ))}
-          <Button
-            type="dashed"
-            icon={<PlusOutlined />}
-            onClick={() => add({ itemKey: undefined, quantity: 1 })}
-          >
-            Добавить инвентарь
-          </Button>
+          <div className="workout-builder-inline-action">
+            <Button
+              size="small"
+              icon={<ToolOutlined />}
+              onClick={() => add({ itemKey: undefined, quantity: 1 })}
+            >
+              Добавить инвентарь
+            </Button>
+          </div>
         </Flex>
       )}
     </Form.List>
@@ -271,9 +279,15 @@ function SessionSetsFields({
     <Form.List name={name}>
       {(fields, { add, remove }) => (
         <Flex vertical gap={16}>
-          {fields.map((field) => (
+          {fields.map((field, index) => (
             <Card key={field.key} size="small">
-              <Row gutter={12}>
+              <div className="workout-set-card__badge">
+                <Tag color="blue" className="workout-set-card__tag">
+                  Подход {index + 1}
+                </Tag>
+              </div>
+              <Flex vertical gap={12}>
+                <Row gutter={12}>
                 <Col xs={24} md={bodyweightMode ? 8 : 10}>
                   <Form.Item
                     label="Повторения"
@@ -320,16 +334,19 @@ function SessionSetsFields({
                       : 'Для обычных силовых упражнений нагрузка задается выбранным инвентарем этого подхода.'}
                   </Text>
                 </Col>
-              </Row>
+                </Row>
+              </Flex>
             </Card>
           ))}
-          <Button
-            type="dashed"
-            icon={<PlusOutlined />}
-            onClick={() => add({ reps: 10, weightKg: null, equipmentAssignments: [] })}
-          >
-            Добавить подход
-          </Button>
+          <div className="workout-builder-inline-action">
+            <Button
+              type="dashed"
+              icon={<PlusOutlined />}
+              onClick={() => add({ reps: 10, weightKg: null, equipmentAssignments: [] })}
+            >
+              Добавить подход
+            </Button>
+          </div>
         </Flex>
       )}
     </Form.List>
@@ -662,100 +679,146 @@ export function WorkoutsSection() {
   )
 
   const createTab = (
-    <Flex vertical gap={24}>
-      <Card className="entity-item-card">
-        <Title level={5}>Создать шаблон тренировки</Title>
-        <Paragraph type="secondary">
-          Подходы теперь хранят собственную нагрузку. Для упражнений с собственным весом
-          можно оставить только повторения, а при необходимости добавить инвентарь и
-          дополнительный вес.
-        </Paragraph>
-        <Form form={templateForm} layout="vertical">
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item
-                label="Название шаблона"
-                name="name"
-                rules={[{ required: true, message: 'Укажите название шаблона' }]}
-              >
-                <Input placeholder="Например, Верх тела" />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Form.Item label="Заметка" name="notes">
-            <Input.TextArea rows={3} />
-          </Form.Item>
-        </Form>
-      </Card>
-
-      <Card type="inner" title={`Черновик шаблона: ${sessionDraft.length}`}>
-        <Form form={entryForm} layout="vertical" onFinish={handleAddEntry}>
-          <Row gutter={[16, 16]}>
-            <Col xs={24} md={12}>
-              <Form.Item
-                label="Упражнение"
-                name="exerciseId"
-                rules={[{ required: true, message: 'Выберите упражнение' }]}
-              >
-                <Select options={exerciseOptions} placeholder="Выберите упражнение" />
-              </Form.Item>
-            </Col>
-            <Col span={24}>
+    <Flex vertical gap={16}>
+      <Card className="entity-item-card workout-builder-card">
+        <Flex vertical gap={16}>
+          <div className="workout-builder-card__header">
+            <div>
+              <Tag color="blue">Шаг 1</Tag>
+              <Title level={5}>Назови шаблон</Title>
               <Text type="secondary">
-                Требования упражнения: {formatExerciseRequirements(selectedExercise)}
+                Дай тренировке короткое и понятное имя.
               </Text>
-            </Col>
-            <Col span={24}>
-              <Form.Item label="Подходы">
-                <SessionSetsFields
-                  name="sets"
-                  options={actualEquipmentOptions}
-                  bodyweightMode={isBodyweightExercise(selectedExercise)}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={24}>
-              <Form.Item label="Комментарий" name="notes">
-                <Input.TextArea rows={2} />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Button htmlType="submit">Добавить упражнение в шаблон</Button>
-        </Form>
+            </div>
+          </div>
 
-        {sessionDraft.length === 0 ? (
-          <Empty description="Черновик пока пуст" />
-        ) : (
-          <Flex vertical gap={12}>
-            {sessionDraft.map((entry) => (
-              <Card key={entry.id} size="small" className="entity-item-card">
-                <div className="entity-item-card__header">
-                  <div style={{ flex: 1 }}>{renderEntries([entry])}</div>
-                  <Button danger type="link" onClick={() => removeDraftEntry(entry.id)}>
-                    Удалить
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </Flex>
-        )}
+          <Form form={templateForm} layout="vertical">
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  label="Название шаблона"
+                  name="name"
+                  rules={[{ required: true, message: 'Укажите название шаблона' }]}
+                >
+                  <Input placeholder="Например, Верх тела" />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Form.Item label="Заметка" name="notes">
+              <Input.TextArea rows={3} placeholder="Необязательно" />
+            </Form.Item>
+          </Form>
+        </Flex>
       </Card>
 
-      <Flex gap={8} wrap="wrap">
-        <Button
-          type="primary"
-          disabled={sessionDraft.length === 0}
-          onClick={() => void handleSaveTemplate()}
-        >
-          Сохранить шаблон
-        </Button>
-        <Button
-          disabled={sessionDraft.length === 0}
-          onClick={() => void handleOpenLogWorkout()}
-        >
-          Сохранить как выполненную тренировку
-        </Button>
-      </Flex>
+      <Card className="entity-item-card workout-builder-card">
+        <Flex vertical gap={16}>
+          <div className="workout-builder-card__header">
+            <div>
+              <Tag color="cyan">Шаг 2</Tag>
+              <Title level={5}>Добавь упражнение</Title>
+              <Text type="secondary">
+                Выбери упражнение, заполни подходы и добавь его в черновик.
+              </Text>
+            </div>
+            {selectedExercise ? <Tag>{selectedExercise.name}</Tag> : null}
+          </div>
+
+          <Form form={entryForm} layout="vertical" onFinish={handleAddEntry}>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  label="Упражнение"
+                  name="exerciseId"
+                  rules={[{ required: true, message: 'Выберите упражнение' }]}
+                >
+                  <Select options={exerciseOptions} placeholder="Выберите упражнение" />
+                </Form.Item>
+              </Col>
+              <Col span={24}>
+                <div className="workout-builder-hint">
+                  <Text type="secondary">
+                    Требования упражнения: {formatExerciseRequirements(selectedExercise)}
+                  </Text>
+                </div>
+              </Col>
+              <Col span={24}>
+                <div className="workout-builder-sets-section">
+                  <div className="workout-builder-sets-section__header">
+                    <Text strong>Подходы</Text>
+                    <Text type="secondary">Заполни повторы и нужный инвентарь для каждого подхода.</Text>
+                  </div>
+                  <Form.Item style={{ marginBottom: 0 }}>
+                    <SessionSetsFields
+                      name="sets"
+                      options={actualEquipmentOptions}
+                      bodyweightMode={isBodyweightExercise(selectedExercise)}
+                    />
+                  </Form.Item>
+                </div>
+              </Col>
+              <Col span={24}>
+                <Form.Item label="Комментарий" name="notes">
+                  <Input.TextArea rows={2} placeholder="Необязательно" />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Button type="primary" htmlType="submit" icon={<PlusOutlined />}>
+              Добавить в шаблон
+            </Button>
+          </Form>
+        </Flex>
+      </Card>
+
+      <Card className="entity-item-card workout-builder-card">
+        <Flex vertical gap={16}>
+          <div className="workout-builder-card__header">
+            <div>
+              <Tag color="gold">Шаг 3</Tag>
+              <Title level={5}>Проверь черновик и сохрани</Title>
+              <Text type="secondary">
+                Когда все упражнения добавлены, сохрани шаблон.
+              </Text>
+            </div>
+            <Tag color={sessionDraft.length > 0 ? 'green' : 'default'}>
+              {sessionDraft.length} упр.
+            </Tag>
+          </div>
+
+          {sessionDraft.length === 0 ? (
+            <Empty description="Черновик пока пуст. Сначала добавь хотя бы одно упражнение." />
+          ) : (
+            <Flex vertical gap={12}>
+              {sessionDraft.map((entry) => (
+                <Card key={entry.id} size="small" className="entity-item-card">
+                  <div className="entity-item-card__header">
+                    <div style={{ flex: 1 }}>{renderEntries([entry])}</div>
+                    <Button danger type="link" onClick={() => removeDraftEntry(entry.id)}>
+                      Удалить
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </Flex>
+          )}
+
+          <div className="workout-builder-actions">
+            <Button
+              type="primary"
+              disabled={sessionDraft.length === 0}
+              onClick={() => void handleSaveTemplate()}
+            >
+              Сохранить шаблон
+            </Button>
+            <Button
+              disabled={sessionDraft.length === 0}
+              onClick={() => void handleOpenLogWorkout()}
+            >
+              Сохранить как выполненную тренировку
+            </Button>
+          </div>
+        </Flex>
+      </Card>
     </Flex>
   )
 
