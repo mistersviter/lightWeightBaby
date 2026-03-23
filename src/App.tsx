@@ -212,6 +212,7 @@ function App() {
                 exercises={data.exercises}
                 equipment={data.equipment}
                 dumbbellAssemblies={data.dumbbellAssemblies}
+                sessions={data.sessions}
                 actualEquipmentOptions={actualEquipmentOptions}
                 exerciseOptions={exerciseOptions}
                 onAddEntry={(entry) => void addActiveWorkoutEntry(entry)}
