@@ -22,10 +22,8 @@ import { SprintsSection } from './sections/SprintsSection'
 import { WorkoutsSection } from './sections/WorkoutsSection'
 import { ActiveWorkoutScreen } from './sections/workouts/ActiveWorkoutScreen'
 import { ViewSessionDetailsModal } from './sections/workouts/ViewSessionDetailsModal'
-import { WorkoutEntrySummary } from './sections/workouts/WorkoutEntrySummary'
 import { useAppStore } from './store/appStore'
-import type { SessionEntry, WorkoutSession } from './types'
-import { formatDumbbellAssemblyShortLabel } from './utils'
+import type { WorkoutSession } from './types'
 
 const { Content } = Layout
 
@@ -71,15 +69,6 @@ function App() {
     [data.exercises],
   )
 
-  const assignmentLabelMap = useMemo(() => {
-    const map = new Map<string, string>()
-    data.equipment.forEach((item) => map.set(`equipment:${item.id}`, item.name))
-    data.dumbbellAssemblies.forEach((assembly) => {
-      map.set(`assembly:${assembly.id}`, formatDumbbellAssemblyShortLabel(assembly))
-    })
-    return map
-  }, [data.dumbbellAssemblies, data.equipment])
-
   const assignmentWeightMap = useMemo(() => {
     const map = new Map<string, number | null>()
     data.equipment.forEach((item) => map.set(`equipment:${item.id}`, item.weightKg))
@@ -88,20 +77,6 @@ function App() {
     )
     return map
   }, [data.dumbbellAssemblies, data.equipment])
-
-  const renderEntries = (entries: SessionEntry[]) => (
-    <div className="workout-session-summary">
-      {entries.map((entry) => (
-        <WorkoutEntrySummary
-          key={entry.id}
-          entry={entry}
-          exercise={exerciseMap.get(entry.exerciseId)}
-          assignmentLabelMap={assignmentLabelMap}
-          assignmentWeightMap={assignmentWeightMap}
-        />
-      ))}
-    </div>
-  )
 
   useEffect(() => {
     void load()
@@ -281,7 +256,10 @@ function App() {
             <ViewSessionDetailsModal
               open={Boolean(viewingSession)}
               session={viewingSession}
-              renderEntries={renderEntries}
+              getExerciseName={(exerciseId) =>
+                exerciseMap.get(exerciseId)?.name ?? 'Упражнение'
+              }
+              assignmentWeightMap={assignmentWeightMap}
               onClose={() => setViewingSession(null)}
             />
 

@@ -404,6 +404,30 @@
   color: #475569;
 }
 
+.session-details-modal__header {
+  padding-right: 32px;
+}
+
+.session-details-modal__title-block {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.session-details-modal__meta {
+  max-width: 100%;
+}
+
+.session-details-modal__set-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 10px;
+  border: 1px solid #edf1f7;
+  border-radius: 10px;
+  background: #fafcff;
+}
+
 @media (max-width: 768px) {
   .content-wrap {
     width: min(100% - 16px, 1280px);
@@ -454,5 +478,14 @@
 
   .bulk-build-card__detail-value {
     text-align: left;
+  }
+
+  .session-details-modal__header {
+    padding-right: 0;
+  }
+
+  .session-details-modal__set-row {
+    flex-direction: column;
+    gap: 4px;
   }
 }

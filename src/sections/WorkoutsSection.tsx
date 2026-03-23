@@ -303,7 +303,8 @@ export function WorkoutsSection() {
       <ViewSessionDetailsModal
         open={Boolean(viewingSession)}
         session={viewingSession}
-        renderEntries={renderEntries}
+        getExerciseName={(exerciseId) => exerciseMap.get(exerciseId)?.name ?? 'Упражнение'}
+        assignmentWeightMap={assignmentWeightMap}
         onClose={() => setViewingSession(null)}
       />
 
