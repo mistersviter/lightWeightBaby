@@ -16,6 +16,8 @@ export function SessionSetsFields({
   options,
   bodyweightMode,
 }: SessionSetsFieldsProps) {
+  const form = Form.useFormInstance()
+  const fieldPath = Array.isArray(name) ? name : [name]
   const sets = (Form.useWatch(name) as SetFormValue[] | undefined) ?? []
 
   return (
@@ -79,6 +81,7 @@ export function SessionSetsFields({
               </Flex>
             </Card>
           ))}
+          <Form.ErrorList errors={form.getFieldError(fieldPath)} />
           <div className="workout-builder-inline-action">
             <Button
               type="dashed"

@@ -1,5 +1,7 @@
 import { equipmentRequirementCategoryOptions } from '../../constants'
 import type {
+  EquipmentItem,
+  EquipmentRequirementCategory,
   Exercise,
   SessionEntry,
   SessionEquipmentAssignment,
@@ -124,4 +126,108 @@ export function formatExerciseRequirements(exercise: Exercise | undefined) {
         `${labels.get(requirement.category) ?? 'Другое'} × ${requirement.quantity}`,
     )
     .join(', ')
+}
+
+function getRequirementLabel(category: EquipmentRequirementCategory) {
+  const labels = new Map(
+    equipmentRequirementCategoryOptions.flatMap((group) =>
+      group.options.map((option) => [option.value, option.label] as const),
+    ),
+  )
+
+  return labels.get(category) ?? 'Другое'
+}
+
+function getRequirementCategoryForAssignment(
+  assignment: SessionEquipmentAssignment,
+  equipmentMap: Map<string, EquipmentItem>,
+): EquipmentRequirementCategory | null {
+  if (assignment.itemType === 'assembly') {
+    return 'dumbbell'
+  }
+
+  const item = equipmentMap.get(assignment.itemId)
+  if (!item) {
+    return null
+  }
+
+  switch (item.kind) {
+    case 'barbell_bar':
+      return 'barbell'
+    case 'kettlebell':
+      return 'kettlebell'
+    case 'bench':
+      return 'bench'
+    case 'pullup_bar':
+      return 'pullup_bar'
+    case 'dip_bars':
+      return 'dip_bars'
+    case 'rack':
+      return 'rack'
+    case 'machine':
+      return 'machine'
+    case 'cable_station':
+      return 'cable_station'
+    case 'band':
+      return 'band'
+    case 'accessory_other':
+      return 'other'
+    default:
+      return null
+  }
+}
+
+export function getExerciseRequirementValidationMessage(
+  exercise: Exercise | undefined,
+  sets: SetFormValue[] | SessionSet[] | undefined,
+  equipmentMap: Map<string, EquipmentItem>,
+) {
+  if (!exercise) {
+    return null
+  }
+
+  const requiredItems = exercise.equipmentRequirements.filter(
+    (requirement) => requirement.category !== 'bodyweight',
+  )
+
+  if (requiredItems.length === 0) {
+    return null
+  }
+
+  const normalizedSets = normalizeSets(sets)
+  const setErrors = normalizedSets
+    .map((set, index) => {
+      const categoryCounts = new Map<EquipmentRequirementCategory, number>()
+
+      set.equipmentAssignments.forEach((assignment) => {
+        const category = getRequirementCategoryForAssignment(assignment, equipmentMap)
+        if (!category) {
+          return
+        }
+
+        categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + assignment.quantity)
+      })
+
+      const missing = requiredItems.filter(
+        (requirement) =>
+          (categoryCounts.get(requirement.category) ?? 0) < requirement.quantity,
+      )
+
+      if (missing.length === 0) {
+        return null
+      }
+
+      const missingText = missing
+        .map((requirement) => `${getRequirementLabel(requirement.category)} × ${requirement.quantity}`)
+        .join(', ')
+
+      return `Подход ${index + 1}: ${missingText}`
+    })
+    .filter((value): value is string => Boolean(value))
+
+  if (setErrors.length === 0) {
+    return null
+  }
+
+  return `Добавьте обязательный инвентарь для упражнения "${exercise.name}": ${setErrors.join('; ')}`
 }

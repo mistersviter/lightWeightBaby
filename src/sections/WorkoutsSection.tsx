@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Form, Tabs } from 'antd'
+import { Form, Tabs, type FormInstance } from 'antd'
 import { initialEntryForm } from '../constants'
 import { useDashboardData } from '../hooks/useDashboardData'
 import { appFormDefaults, useAppStore } from '../store/appStore'
@@ -22,6 +22,7 @@ import type {
   TemplateFormValues,
 } from './workouts/types'
 import {
+  getExerciseRequirementValidationMessage,
   normalizeSets,
   toEditableEntry,
 } from './workouts/utils'
@@ -68,6 +69,11 @@ export function WorkoutsSection() {
     [data.exercises],
   )
 
+  const equipmentMap = useMemo(
+    () => new Map(data.equipment.map((item) => [item.id, item])),
+    [data.equipment],
+  )
+
   const assignmentLabelMap = useMemo(() => {
     const map = new Map<string, string>()
     data.equipment.forEach((item) => map.set(`equipment:${item.id}`, item.name))
@@ -91,13 +97,54 @@ export function WorkoutsSection() {
     ? exerciseMap.get(selectedExerciseId)
     : undefined
 
+  const validateEntryRequirements = (values: EntryFormValues) => {
+    const exercise = exerciseMap.get(values.exerciseId)
+    const error = getExerciseRequirementValidationMessage(
+      exercise,
+      values.sets,
+      equipmentMap,
+    )
+
+    entryForm.setFields([{ name: ['sets'], errors: error ? [error] : [] }])
+
+    return !error
+  }
+
+  const validateEditableEntries = (
+    entries: EditTemplateFormValues['entries'] | EditSessionFormValues['entries'],
+    form: FormInstance,
+  ) => {
+    const fieldErrors = entries.flatMap((entry, index) => {
+      const exercise = exerciseMap.get(entry.exerciseId)
+      const error = getExerciseRequirementValidationMessage(
+        exercise,
+        entry.sets,
+        equipmentMap,
+      )
+
+      return {
+        name: ['entries', index, 'sets'] as (string | number)[],
+        errors: error ? [error] : [],
+      }
+    })
+
+    form.setFields(fieldErrors)
+
+    return fieldErrors.every((field) => field.errors.length === 0)
+  }
+
   const handleAddEntry = (values: EntryFormValues) => {
+    if (!validateEntryRequirements(values)) {
+      return
+    }
+
     addDraftEntry({
       exerciseId: values.exerciseId,
       sets: normalizeSets(values.sets),
       notes: values.notes?.trim() || '',
     })
 
+    entryForm.setFields([{ name: ['sets'], errors: [] }])
     entryForm.setFieldsValue({
       ...initialEntryForm,
       exerciseId: values.exerciseId,
@@ -167,6 +214,10 @@ export function WorkoutsSection() {
       return
     }
 
+    if (!validateEditableEntries(values.entries, editForm)) {
+      return
+    }
+
     await updateSession(editingSession.id, {
       ...values,
       entries: values.entries.map((entry) => ({
@@ -182,6 +233,10 @@ export function WorkoutsSection() {
   const handleEditTemplate = async () => {
     const values = await templateEditForm.validateFields()
     if (!editingTemplate) {
+      return
+    }
+
+    if (!validateEditableEntries(values.entries, templateEditForm)) {
       return
     }
 

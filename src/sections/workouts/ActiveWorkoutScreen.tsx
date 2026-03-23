@@ -8,6 +8,7 @@ import {
   ToolOutlined,
 } from '@ant-design/icons'
 import {
+  Alert,
   Button,
   Card,
   Col,
@@ -36,6 +37,7 @@ import { SessionSetsFields } from './SessionSetsFields'
 import type { EntryFormValues, EquipmentOptions } from './types'
 import {
   formatExerciseRequirements,
+  getExerciseRequirementValidationMessage,
   isBodyweightExercise,
   normalizeSets,
   parseEquipmentKey,
@@ -184,10 +186,16 @@ export function ActiveWorkoutScreen({
   const [titleDraft, setTitleDraft] = useState(activeWorkout.title)
   const [titleModalOpen, setTitleModalOpen] = useState(false)
   const [addExerciseModalOpen, setAddExerciseModalOpen] = useState(false)
+  const [finishValidationError, setFinishValidationError] = useState<string | null>(null)
 
   const exerciseMap = useMemo(
     () => new Map(exercises.map((exercise) => [exercise.id, exercise])),
     [exercises],
+  )
+
+  const equipmentMap = useMemo(
+    () => new Map(equipment.map((item) => [item.id, item])),
+    [equipment],
   )
 
   const assignmentLabelMap = useMemo(() => {
@@ -248,6 +256,7 @@ export function ActiveWorkoutScreen({
   )
 
   const resetEntryForm = () => {
+    entryForm.setFields([{ name: ['sets'], errors: [] }])
     entryForm.setFieldsValue({
       exerciseId: '',
       sets: [{ reps: 10, weightKg: null, equipmentAssignments: [] }],
@@ -261,6 +270,17 @@ export function ActiveWorkoutScreen({
   }
 
   const handleAddEntry = (values: EntryFormValues) => {
+    const error = getExerciseRequirementValidationMessage(
+      exerciseMap.get(values.exerciseId),
+      values.sets,
+      equipmentMap,
+    )
+
+    entryForm.setFields([{ name: ['sets'], errors: error ? [error] : [] }])
+    if (error) {
+      return
+    }
+
     onAddEntry({
       exerciseId: values.exerciseId,
       sets: normalizeSets(values.sets),
@@ -271,11 +291,57 @@ export function ActiveWorkoutScreen({
     setAddExerciseModalOpen(false)
   }
 
+  const handleFinishWorkout = () => {
+    const entryErrors = activeWorkout.entries
+      .map((entry) => {
+        const exercise = exerciseMap.get(entry.exerciseId)
+        const error = getExerciseRequirementValidationMessage(
+          exercise,
+          entry.sets.map((set) => ({
+            reps: set.actualReps,
+            weightKg: set.actualWeightKg,
+            equipmentAssignments: set.actualEquipmentAssignments,
+          })),
+          equipmentMap,
+        )
+
+        return error
+          ? `${entry.exerciseName}: ${error.replace(
+              /^Добавьте обязательный инвентарь для упражнения ".*?":\s*/,
+              '',
+            )}`
+          : null
+      })
+      .filter((value): value is string => Boolean(value))
+
+    if (entryErrors.length > 0) {
+      setFinishValidationError(
+        `Нельзя завершить тренировку, пока не добавлен обязательный инвентарь: ${entryErrors.join(
+          '; ',
+        )}`,
+      )
+      return
+    }
+
+    setFinishValidationError(null)
+    onFinish()
+  }
+
   return (
     <>
       <Flex vertical gap={16}>
         <Card className="today-workout-card active-workout-card">
           <Flex vertical gap={16}>
+            {finishValidationError ? (
+              <Alert
+                type="error"
+                showIcon
+                title={finishValidationError}
+                closable
+                onClose={() => setFinishValidationError(null)}
+              />
+            ) : null}
+
             <div className="today-workout-card__header active-workout-card__header">
               <div className="active-workout-card__intro">
                 <Tag color="blue">Текущая тренировка</Tag>
@@ -324,7 +390,7 @@ export function ActiveWorkoutScreen({
             </Flex>
 
             <div className="workout-builder-actions">
-              <Button type="primary" icon={<CheckCircleOutlined />} onClick={onFinish}>
+              <Button type="primary" icon={<CheckCircleOutlined />} onClick={handleFinishWorkout}>
                 Завершить тренировку
               </Button>
               <Button danger icon={<CloseCircleOutlined />} onClick={onDiscard}>
