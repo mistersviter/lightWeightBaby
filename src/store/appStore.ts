@@ -1222,8 +1222,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
                         values.actualEquipmentAssignments === undefined
                           ? set.actualEquipmentAssignments
                           : normalizeEquipmentAssignments(values.actualEquipmentAssignments),
-                      notes:
-                        values.notes === undefined ? set.notes : values.notes.trim(),
+                      notes: values.notes === undefined ? set.notes : values.notes,
                       status: values.status ?? set.status,
                     },
               ),
